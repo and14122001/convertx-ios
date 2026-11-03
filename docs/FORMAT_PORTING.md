@@ -226,3 +226,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 使用者 iPhone 執行 `node node_modules/typescript/bin/tsc --noEmit` 發現四項錯誤：`AcApOpenDatabaseOptions` 不接受 `readOnly`；三個 Vite static copy target 的 `rename:{stripBase:true}` 型別不符。
 - `src/main.ts` 移除 `readOnly`；`vite.config.ts` 改用合法的 `rename` callback 保留原始檔名。
 - 此為依錯誤訊息修正，**尚待 iPhone 重新執行 tsc**，不宣稱編譯或 DWG→PDF 已通過。
+
+### 2026-11-03 iPhone a-Shell Node 單元測試通過
+- iPhone a-Shell Node 26.12.1 拒絕 `--experimental-strip-types` 與 `--test` 啟動選項，但可直接執行 `node tests/offline-sw.test.mjs`。
+- 使用者實測：5 tests、5 pass、0 fail、約 418.5ms；涵蓋離線快取資產、版本雜湊、可重現性、缺失入口與快取隔離。
+- `cad-full/package.json` 的 `npm test` 已改成直接執行測試檔，兼容 a-Shell 與一般 Node 環境。
+- 尚未執行 Vite 正式 build、檢驗生成的完整 dist、iPhone Safari 飛航模式 DWG→PDF。
