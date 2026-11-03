@@ -232,3 +232,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 使用者實測：5 tests、5 pass、0 fail、約 418.5ms；涵蓋離線快取資產、版本雜湊、可重現性、缺失入口與快取隔離。
 - `cad-full/package.json` 的 `npm test` 已改成直接執行測試檔，兼容 a-Shell 與一般 Node 環境。
 - 尚未執行 Vite 正式 build、檢驗生成的完整 dist、iPhone Safari 飛航模式 DWG→PDF。
+
+### 2026-11-03 Linux Codespaces 正式編譯入口
+- 新增 `cad-full/scripts/verify-linux-build.sh`：Linux 平台檢查、npm 安裝與 audit、Node 測試、TypeScript、Vite build、SW/Worker/WASM 產物存在性驗證。
+- 在 Codespaces 終端執行：`cd cad-full && bash scripts/verify-linux-build.sh`。未經執行不得宣稱 PASS；成功仍需 Safari 離線 DWG→PDF 實機驗收。
+- 使用者已於 iPhone a-Shell 實測 5/5 離線快取測試通過、TypeScript 通過、npm audit 0 漏洞；iOS 原生 esbuild 不支援，改用 Linux 編譯。
+- GitHub Codespaces 個人帳戶有免費配額，但不是無限免費；啟用前確認 Billing、預算與剩餘額度。此處未啟動 Codespaces、GitHub Actions 或 Pages 部署。
