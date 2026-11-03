@@ -238,3 +238,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 在 Codespaces 終端執行：`cd cad-full && bash scripts/verify-linux-build.sh`。未經執行不得宣稱 PASS；成功仍需 Safari 離線 DWG→PDF 實機驗收。
 - 使用者已於 iPhone a-Shell 實測 5/5 離線快取測試通過、TypeScript 通過、npm audit 0 漏洞；iOS 原生 esbuild 不支援，改用 Linux 編譯。
 - GitHub Codespaces 個人帳戶有免費配額，但不是無限免費；啟用前確認 Billing、預算與剩餘額度。此處未啟動 Codespaces、GitHub Actions 或 Pages 部署。
+
+### 2026-11-03 延後集中驗收（使用者決策）
+- 使用者要求暫停 Codespaces / Linux 編譯，先完成其他程式與靜態檢查，之後一次集中驗收；不觸發付費資源或 Actions。
+- 已修正網頁進階說明中的無效 `npm cache ls @mlightcad`，並明示 iOS esbuild 限制及離線功能尚未驗收。
+- `check-dist.mjs` 加嚴：PDF 命令缺失由 WARN 改為 FAIL，SW 必須同時包含 DWG WASM、DWG Worker、mtext Worker。
+- 待集中驗收：Linux npm install/audit/test/tsc/Vite build、完整 dist 靜態檢查、iPhone Safari 飛航模式開啟 DWG、圖面渲染與實際 PDF 輸出；此輪沒有執行上述正式驗收。
