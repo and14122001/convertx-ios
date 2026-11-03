@@ -177,3 +177,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `deps:ci` 在缺少 lockfile 時立即失敗，避免誤以為完成可重現安裝。npm 文件說明 `npm ci` 必須依賴 lockfile，且 npm 的 `replace-registry-host=npmjs` 可將官方 lockfile URL 對應至目前 Registry。參考：https://docs.npmjs.com/cli/using-npm/config/ 、https://docs.npmjs.com/cli/commands/npm-ci
 - 安裝時不禁用 TLS 驗證，維持 lockfile integrity 檢查；網域全部無法解析時，不應宣稱鏡像已解決 DNS 問題。
 - **尚未在可連網 checkout 完成 npm 安裝、Vite build、DWG→PDF 匯出與 iPhone 離線驗收。**
+
+### 2026-11-03 DWG→PDF 離線發行檢查
+- 依 MLightCAD `cad-simple-viewer-example` 最新 README，PDF 外掛由 `AcApDocManager.instance.sendStringToExecute('cpdf')` 觸發懶載入；修正先前未驗證的 `editor.executeCommand('-cpdf')` 呼叫。
+- 新增 `cad-full/scripts/check-dist.mjs`：建置完成後檢查 HTML、MTEXT Worker、LibreDWG Worker、LibreDWG WASM 與 JavaScript bundle 非空；缺少必備資產會讓 build 失敗。
+- `npm run build` 已串接測試、TypeScript、Vite 與離線資產 smoke check。**這只是靜態檢查，無法證明 iPhone Safari 可解析 DWG 或產生正確 PDF。**
+- 官方參考：https://github.com/mlightcad/cad-simple-viewer-example 及 https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md
+- 仍需：成功安裝套件、實際執行 build、部署 Pages、飛航模式實機 DWG→PDF 測試及 PDF 保真比對。
