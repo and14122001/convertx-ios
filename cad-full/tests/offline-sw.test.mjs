@@ -50,3 +50,5 @@ test('service worker only intercepts requests inside its registration scope',()=
 }))
 
 test('failed installation cleans incomplete cache',()=>fixture(root=>{const sw=generate(root);assert.match(sw,/catch\(err\)\{await caches\.delete\(CACHE\);throw err\}/)}))
+
+test('updates do not forcibly take over active CAD sessions',()=>fixture(root=>{const sw=generate(root);assert.doesNotMatch(sw,/self\.skipWaiting\(/);assert.match(sw,/self\.addEventListener\('activate'/)}))
