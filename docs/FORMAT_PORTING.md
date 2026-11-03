@@ -203,3 +203,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `tests/offline-sw.test.mjs` 增加缺少 `index.html` 應失敗、不可跨快取命名空間讀取等兩項案例。
 - 已再次檢查上游 `mlightcad/cad-simple-viewer-example` README：PDF 使用 `sendStringToExecute('cpdf')`，DWG Worker + WASM 需同目錄，Node >=22。來源：https://github.com/mlightcad/cad-simple-viewer-example
 - **環境驗證：**Node v22.16.0、npm 10.9.2 存在；目前執行環境 `getent hosts registry.npmjs.org` 無結果，未能取得依賴。測試案例已提交但未執行；仍無 Vite dist 或實機 PDF 驗收證據。
+
+### 2026-11-03 iPhone 本機建置診斷
+- 新增 `cad-full/scripts/iphone-diagnostics.sh`：唯讀檢查 a-Shell 的 Node/npm/git/curl/Python、npm Registry 與 MLightCAD 本機快取，不安裝套件、不修改全域設定。
+- `cad-full/index.html` 明確區分：一般 PWA 使用者無須 a-Shell；只有自行編譯時才可選擇安裝，且 iOS 端 Node/npm 與 Vite 相容性仍須實機確認。
+- 操作：下載專案原始碼至 a-Shell 可讀取的資料夾後，從 `cad-full` 執行 `sh scripts/iphone-diagnostics.sh`。缺少 Node/npm 時改走 Codespaces；有 npm 但無快取時先檢查網路再決定安裝方式。
+- 官方參考：https://github.com/holzschu/a-shell 。**此輪未宣稱已在使用者 iPhone 執行診斷、安裝套件或完成 DWG→PDF。**
