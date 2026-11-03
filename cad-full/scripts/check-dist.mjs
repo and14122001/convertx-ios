@@ -2,7 +2,7 @@
 import { existsSync, statSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 const root='dist'
-const required=['index.html','assets/mtext-renderer-worker.js','assets/libredwg-parser-worker.js','assets/libredwg-web.wasm']
+const required=['sw.js','index.html','assets/mtext-renderer-worker.js','assets/libredwg-parser-worker.js','assets/libredwg-web.wasm']
 let failed=false
 for(const file of required){
   const path=join(root,file)
@@ -17,5 +17,6 @@ if(existsSync(join(root,'assets'))){
   const pdfBundle=js.some(n=>readFileSync(join(root,'assets',n),'utf8').includes('cpdf'))
   console.log(pdfBundle?'PASS':'WARN','PDF export command in bundled JavaScript')
 }
+if(existsSync(join(root,'sw.js'))){const sw=readFileSync(join(root,'sw.js'),'utf8');if(!sw.includes('libredwg-web.wasm')||!sw.includes('libredwg-parser-worker.js')){console.error('FAIL: offline cache omits DWG runtime');failed=true}}
 if(failed){console.error('CAD offline bundle incomplete; deployment must not proceed');process.exitCode=1}
 else console.log('Static asset smoke check passed; browser DWG/PDF functionality remains unverified')
