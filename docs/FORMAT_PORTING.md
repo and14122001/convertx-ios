@@ -150,3 +150,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - **現有 GitHub Pages 首頁仍只提供 `cad.html` DXF→SVG 實驗版；`cad-full/` 尚未經 npm install、Vite build、Safari 實測或部署。不能稱 DWG→PDF 已可用。**
 - 待辦：安裝依賴並核對 package API、執行 build、產出 dist、將 dist 放入 Pages 可訪問路徑、處理 Service Worker 預快取及 GPL 授權告知，最後使用真實 DWG 驗收。
 - 官方實作參考：https://github.com/mlightcad/cad-simple-viewer-example （尤其 src/registerLibreDwg.ts、src/register.ts、vite.config.ts）。
+
+### 2026-11-03 批次修正與測試限制
+- `cad-full/src/main.ts`：檢查 DWG AC10xx 標頭、避免同時重複開檔、使用 PDF 外掛文件所列 `-cpdf` 命令。
+- `cad-full/package.json`：正式 build 先執行 TypeScript 檢查；新增 `tsconfig.json`。
+- 官方範例確認 `-cpdf` 是無 UI 的命令列 PDF 匯出；`cpdf` 在完整 UI 可能開啟對話框。來源：https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md
+- **驗證阻塞：**此執行環境 `npm view` 無法在逾時內取得 npm registry 回應，因此尚未安裝依賴，也未實際完成 `tsc`、Vite build、WASM 載入、PDF 生成與 iPhone 離線驗收。不可將原始碼提交當成轉檔成功。
+- 下一批優先：取得可用 Node/npm 建置環境，檢查實際 API/相依版本與 TS 錯誤，打包 Worker+WASM、部署並進行真實 DWG PDF 測試。
