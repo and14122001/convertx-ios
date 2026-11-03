@@ -254,3 +254,8 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `src/main.ts`：載入失敗重置 `documentReady` 並禁用 PDF 按鈕，保留錯誤訊息；PDF 指令成功送出僅提示已啟動流程，**不宣稱 PDF 已產生**。
 - `index.html` 與 `src/main.ts`：新增獨立離線狀態欄位；註冊 SW 後檢查目前 origin 之 ConvertX 專用快取是否含 index.html、DWG WASM、DWG Worker、文字 Worker；更新或接管時重新檢查。顯示「核心資產已快取」仍不代表完整功能可離線運作。
 - 依使用者指示暫不啟動 Codespaces、Actions 或部署；本輪修改尚待集中執行 TypeScript、單元測試、Vite build 與 Safari DWG→PDF 驗收。
+
+### 2026-11-03 離線安裝失敗清理修正
+- Service Worker 預快取安裝程序加入 `try/catch`；資產下載或快取寫入失敗時，先 `caches.delete(CACHE)` 清除該版本未完成快取，再拋出錯誤，使安裝失敗且不宣告成功。
+- 新增單元測試檢查產生的 SW 包含安裝失敗清理邏輯；屬靜態回歸測試，不等於瀏覽器故障注入測試。
+- 此輪僅更新 GitHub 程式碼，未執行 Codespaces、Actions、Linux build 或 Safari 實機驗收；仍待一次集中檢查。
