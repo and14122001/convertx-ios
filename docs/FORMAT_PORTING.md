@@ -171,3 +171,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 每次嘗試設 45 秒上限、較短 npm 網路逾時，避免單一 Registry 卡住整批工作；不修改使用者全域 npm 設定。
 - 安全性：不關閉 TLS 驗證；正式建置固定版本並提交 package-lock.json，核對 integrity。鏡像可能不同步或套件不存在；切換來源無法解決全面 DNS 故障。
 - **此批已提交程式，但未在可存取 npm Registry 的 checkout 中執行完整安裝/建置。**
+
+### 2026-11-03 npm 備援增強
+- 安裝流程增加 `package-lock.json` 存在時優先嘗試 `npm ci --offline`（本機 npm 快取）；失敗才走官方→Yarn→npmmirror→華為雲 Registry。
+- `deps:ci` 在缺少 lockfile 時立即失敗，避免誤以為完成可重現安裝。npm 文件說明 `npm ci` 必須依賴 lockfile，且 npm 的 `replace-registry-host=npmjs` 可將官方 lockfile URL 對應至目前 Registry。參考：https://docs.npmjs.com/cli/using-npm/config/ 、https://docs.npmjs.com/cli/commands/npm-ci
+- 安裝時不禁用 TLS 驗證，維持 lockfile integrity 檢查；網域全部無法解析時，不應宣稱鏡像已解決 DNS 問題。
+- **尚未在可連網 checkout 完成 npm 安裝、Vite build、DWG→PDF 匯出與 iPhone 離線驗收。**
