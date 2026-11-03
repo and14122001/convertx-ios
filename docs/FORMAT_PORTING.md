@@ -215,3 +215,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `cad-full/package.json` 已更新為上述精確版本，移除未使用且未核實的 cad-simple-ui-plugin；其餘 peer dependencies 交由 npm 安裝並檢查。
 - iPhone 下一步：先 `npm install --package-lock-only --ignore-scripts` 驗證依賴樹，再 `npm install` 與 `npm run build`；如有錯誤需保留完整訊息，勿使用 `--force` 或 `--legacy-peer-deps` 掩蓋衝突。
 - 此輪未產生 lockfile，也尚未在 iPhone 實際安裝、編譯或完成 DWG→PDF 測試。
+
+### 2026-11-03 lodash-es 安全性修正（待驗證）
+- iPhone npm audit 顯示 `lodash-es@4.17.21` 由 `@mlightcad/cad-simple-viewer@1.7.8` 間接引入，三項漏洞（1 high、2 moderate）。
+- 使用者於 iPhone npm registry 查得 `lodash-es@4.18.1` 存在；GitHub `cad-full/package.json` 新增 `overrides: { "lodash-es": "4.18.1" }`。
+- **尚未驗證**：更新後 npm install/audit、MLightCAD API 相容性及 DWG→PDF；iOS `esbuild` 原生安裝仍不支援，正式 build 應移至 Linux 環境。
+- 本機 ZIP 下載的檔案不會自動跟隨 GitHub 更新，須重新下載 main ZIP 才會讀到 overrides；不建議使用 `npm audit fix --force`。
