@@ -209,3 +209,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `cad-full/index.html` 明確區分：一般 PWA 使用者無須 a-Shell；只有自行編譯時才可選擇安裝，且 iOS 端 Node/npm 與 Vite 相容性仍須實機確認。
 - 操作：下載專案原始碼至 a-Shell 可讀取的資料夾後，從 `cad-full` 執行 `sh scripts/iphone-diagnostics.sh`。缺少 Node/npm 時改走 Codespaces；有 npm 但無快取時先檢查網路再決定安裝方式。
 - 官方參考：https://github.com/holzschu/a-shell 。**此輪未宣稱已在使用者 iPhone 執行診斷、安裝套件或完成 DWG→PDF。**
+
+### 2026-11-03 iPhone npm peerDependencies 驗證
+- 使用者於 iPhone a-Shell `npm view` 查得版本：libredwg-converter 3.15.21、cad-simple-viewer 1.7.8、cad-pdf-plugin 1.7.8、data-model 1.15.21；三組 peerDependencies 均要求 data-model 1.15.21，PDF plugin 另要求 viewer 1.7.8。
+- `cad-full/package.json` 已更新為上述精確版本，移除未使用且未核實的 cad-simple-ui-plugin；其餘 peer dependencies 交由 npm 安裝並檢查。
+- iPhone 下一步：先 `npm install --package-lock-only --ignore-scripts` 驗證依賴樹，再 `npm install` 與 `npm run build`；如有錯誤需保留完整訊息，勿使用 `--force` 或 `--legacy-peer-deps` 掩蓋衝突。
+- 此輪未產生 lockfile，也尚未在 iPhone 實際安裝、編譯或完成 DWG→PDF 測試。
