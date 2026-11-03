@@ -184,3 +184,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `npm run build` 已串接測試、TypeScript、Vite 與離線資產 smoke check。**這只是靜態檢查，無法證明 iPhone Safari 可解析 DWG 或產生正確 PDF。**
 - 官方參考：https://github.com/mlightcad/cad-simple-viewer-example 及 https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md
 - 仍需：成功安裝套件、實際執行 build、部署 Pages、飛航模式實機 DWG→PDF 測試及 PDF 保真比對。
+
+### 2026-11-03 離線 DWG/PDF 靜態資產批次整合
+- `cad-full/vite.config.ts` 對齊官方 `vite-plugin-static-copy` 的 `rename.stripBase` 用法，讓 MTEXT worker、LibreDWG worker 與 wasm 保持同一 `dist/assets/` 層級。
+- 新增 `scripts/generate-offline-sw.mjs`：Vite build 後列舉 `dist/` 所有檔案（含動態載入的 PDF chunk），產生 `sw.js` 預快取清單；內容 SHA-256 前綴作為版本鍵，整包超過 150 MiB 則阻擋。`src/main.ts` 註冊同源 service worker。
+- `check-dist.mjs` 新增 `sw.js` 與 DWG worker/wasm 預快取檢查。安裝成功後執行 `npm run build` 才會產生真正可離線部署的 `dist/`。
+- 風險：Safari 快取容量限制、首次上線必須完整下載後才可離線、PDF 懶載入套件與 Worker 路徑仍須實際瀏覽器驗證。尚未完成 npm 安裝、Vite build、部署或 iPhone DWG→PDF 驗收。
+- 依據：https://github.com/mlightcad/cad-simple-viewer-example （官方示範 Vite 靜態複製與懶載入 PDF）。
