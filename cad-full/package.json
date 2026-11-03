@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run test && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
     "@mlightcad/cad-simple-viewer": "1.6.0",
