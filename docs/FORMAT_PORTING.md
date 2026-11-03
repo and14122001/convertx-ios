@@ -157,3 +157,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 官方範例確認 `-cpdf` 是無 UI 的命令列 PDF 匯出；`cpdf` 在完整 UI 可能開啟對話框。來源：https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md
 - **驗證阻塞：**此執行環境 `npm view` 無法在逾時內取得 npm registry 回應，因此尚未安裝依賴，也未實際完成 `tsc`、Vite build、WASM 載入、PDF 生成與 iPhone 離線驗收。不可將原始碼提交當成轉檔成功。
 - 下一批優先：取得可用 Node/npm 建置環境，檢查實際 API/相依版本與 TS 錯誤，打包 Worker+WASM、部署並進行真實 DWG PDF 測試。
+
+### 2026-11-03 DWG→PDF 批次修正（第二批）
+- 依官方 PDF 外掛文件修正為 `AcApDocManager.instance.editor.executeCommand('-cpdf')`，並捕捉非同步錯誤；原先 `sendStringToExecute` 並非文件所列 API。
+- 抽出 `cad-full/src/file-validation.ts`，檢查 DWG AC10xx、ASCII/Binary DXF 標頭、空檔與不支援副檔名。
+- 新增 `cad-full/tests/file-validation.test.mjs` 七項零依賴測試，`npm run build` 先跑測試與 TypeScript 檢查再執行 Vite。
+- 本次在執行環境確認 Node v22.16.0 / npm 10.9.2，但 `registry.npmjs.org` DNS 回傳 `EAI_AGAIN`；**測試腳本尚未在 GitHub checkout 執行、套件未安裝、Vite 未建置、DWG→PDF 未驗收**。
+- 待處理：核對 MLightCAD 套件版本、Worker/WASM 複製路徑與 PDF 外掛實際型別，建置後在 iPhone 飛航模式驗證 PDF 可開啟與圖元保真。
