@@ -6,7 +6,7 @@ function collect(dir){return readdirSync(dir,{withFileTypes:true}).flatMap(e=>{c
 const files=collect(root).filter(p=>!p.endsWith('sw.js')).map(p=>relative(root,p).split(sep).join('/'))
 const total=files.reduce((n,p)=>n+statSync(join(root,p)).size,0)
 if(total>150*1024*1024)throw new Error('Offline bundle exceeds 150 MiB; inspect WASM and chunks before shipping')
-const cacheName='convertx-cad-full-'+process.env.GITHUB_SHA?.slice(0,12)||'convertx-cad-full-local'
+const cacheName='convertx-cad-full-'+(process.env.GITHUB_SHA?.slice(0,12)||'local')
 const source=`const CACHE=${JSON.stringify(cacheName)};const ASSETS=${JSON.stringify(['./',...files.map(x=>'./'+x)])};
 self.addEventListener('install',event=>event.waitUntil((async()=>{const cache=await caches.open(CACHE);for(const asset of ASSETS){const response=await fetch(asset,{cache:'reload'});if(!response.ok)throw Error('offline asset '+asset+' '+response.status);await cache.put(asset,response)}await self.skipWaiting()})()));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith('convertx-cad-full-')&&key!==CACHE)await caches.delete(key);await self.clients.claim()})()));
