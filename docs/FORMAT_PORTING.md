@@ -142,3 +142,11 @@
 
 ### 開發順序
 P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖層/字型/塊處理 → P0c PDF 向量輸出與版面設定 → P0d 實機保真驗收。DXF→SVG 目前只是輔助原型，不能抵銷 P0 未完成。
+
+## 2026-11-03 P0 DWG→PDF 開始整合（原始碼已提交，尚未建置/部署）
+- 新增獨立 `cad-full/` Vite 專案：`package.json`、`vite.config.ts`、`index.html`、`src/main.ts`。
+- 採 MLightCAD viewer 1.6.0 + data-model 1.13.0 + LibreDWG GPL-3.0 converter ^3.13.0 + PDF plugin 1.6.0。
+- `main.ts` 註冊 DWG converter、檢查 worker、載入本機 DWG/DXF、PDF `cpdf` 命令；`vite.config.ts` 同源複製 MTEXT worker、LibreDWG worker、WASM。
+- **現有 GitHub Pages 首頁仍只提供 `cad.html` DXF→SVG 實驗版；`cad-full/` 尚未經 npm install、Vite build、Safari 實測或部署。不能稱 DWG→PDF 已可用。**
+- 待辦：安裝依賴並核對 package API、執行 build、產出 dist、將 dist 放入 Pages 可訪問路徑、處理 Service Worker 預快取及 GPL 授權告知，最後使用真實 DWG 驗收。
+- 官方實作參考：https://github.com/mlightcad/cad-simple-viewer-example （尤其 src/registerLibreDwg.ts、src/register.ts、vite.config.ts）。
