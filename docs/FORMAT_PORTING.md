@@ -265,3 +265,8 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 保留 activate 階段的舊快取清理；新增第 8 項靜態回歸測試，檢查不再強制啟用。
 - 參考 Chrome Workbox service worker lifecycle 文件：skipWaiting 可能使舊頁面後續懶載入資源不相容。此修正尚待集中測試。
 - 注意：使用者必須關閉舊版頁籤，更新版才能正常接管；未增加任何雲端測試費用。
+
+### 2026-11-03 離線產物完整性檢查
+- `cad-full/scripts/check-dist.mjs` 現在解析生成的 `const ASSETS` 清單，逐一比對 dist 實際檔案，禁止漏掉懶載入 JS chunk、PDF 相關資產或包含過時路徑的清單；支援 `CAD_DIST_DIR` 指向測試資料夾。
+- `cad-full/tests/offline-sw.test.mjs` 新增第 9 項回歸測試：在生成 SW 後額外新增 JS chunk，要求檢查程式回報 `offline manifest mismatch` 並失敗。
+- 此為 GitHub 程式碼更新，未執行正式編譯或新測試；等待集中驗收。零新增 Codespaces/Actions 使用。
