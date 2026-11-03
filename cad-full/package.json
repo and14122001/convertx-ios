@@ -8,7 +8,10 @@
     "build": "npm run test && tsc --noEmit && vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.mjs"
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "deps:check": "node scripts/npm-failover.mjs --check",
+    "deps:install": "node scripts/npm-failover.mjs",
+    "deps:ci": "node scripts/npm-failover.mjs --ci"
   },
   "dependencies": {
     "@mlightcad/cad-simple-viewer": "1.6.0",
