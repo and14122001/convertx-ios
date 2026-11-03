@@ -111,3 +111,9 @@
 - 官方指出 LibreDWG 路徑可能缺少部分實體支援，且 WASM 較大、記憶體較高，大圖可能 OOM；商用解析器不是免費開源替代品。
 - 官方示例：https://github.com/mlightcad/cad-simple-viewer-example ，採 lazy-load HTML/PDF/SVG 匯出插件。
 - 實際整合前需確認 GPL 授權義務、第三方 notices、Safari 記憶體上限與離線資產部署。**目前尚未建置 DWG 轉檔引擎。**
+
+## 2026-11-03 CAD 程式里程碑
+- 已提交 `cad.html`：本機 ASCII DXF→SVG 原型，LINE、CIRCLE、ARC、LWPOLYLINE 的基本幾何子集。
+- 未支援圖元會在頁面列出統計；DWG 明確拒絕，避免假轉檔；LWPOLYLINE bulge、BLOCK/INSERT、TEXT、DIMENSION、HATCH、線型等尚不支援。
+- 已加入首頁入口及 Service Worker 離線預快取。
+- **未通過真實 CAD 圖檔保真驗收，不能當作完整 DXF/DWG 轉換器**；後續需導入 MLightCAD 核心並完成 Safari 測試。
