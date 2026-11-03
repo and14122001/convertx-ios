@@ -80,3 +80,26 @@
 - 已阻擋 script、foreignObject、事件屬性、外部引用、CSS url()、DTD/ENTITY 等常見風險；不保證能安全處理任意惡意 SVG，後續仍需安全審核。
 - 已更新首頁連結與 Service Worker 預快取。
 - **尚未完成 iPhone Safari 實機與離線重啟驗收**，不得標示為全面相容。
+
+## 2026-11-03 優先級變更：AutoCAD DWG / DXF（使用者明確指定）
+**P0：CAD 轉換優先於 PDF、影音、Office 的後續擴充。**
+
+### 開源候選（尚未整合）
+- https://github.com/mlightcad/cad-viewer — MIT，瀏覽器 DWG/DXF 檢視/編輯核心；先核對實際版本、匯出 API 與所有轉移依賴授權。
+- https://github.com/linkiez/DXF-Renewed — DXF→SVG、區塊 INSERT 展開及 2D 渲染備援。
+- https://github.com/gdsestimating/dxf-parser — MIT，DXF 解析；非 DWG 編碼器。
+
+### 實作里程碑
+1. [ ] 在獨立 CAD 模組導入可同源部署的 DWG/DXF 解析器與 Worker/WASM 資產，無 CDN 執行依賴。
+2. [ ] DWG、DXF 讀取與預覽，顯示圖層、模型空間與實際單位，遇未知單位不推測。
+3. [ ] 2D DXF→SVG、PNG、PDF，保留幾何比例、圖層與可選圖框。
+4. [ ] DWG→DXF：先驗證原始幾何、文字、尺寸、BLOCK、HATCH、XREF、線型與圖層是否能保真匯出。
+5. [ ] DXF→DWG：僅在取得經授權且可在 iOS Safari 離線執行的 DWG writer 後啟用，否則明確標記不支援。
+6. [ ] 兩份真實工程圖（包含 BLOCK/INSERT、尺寸、中文、不同單位）交叉比對；iPhone Safari、PWA、飛航模式驗收。
+7. [ ] 實測大檔記憶體、執行時間、字型缺失及 XREF 外部參照的處理。
+
+### 安全與精度
+- DWG/DXF 不上傳伺服器；不自動下載外部參照。
+- **不臆測 CAD 管徑、壓力、流量、比例或缺失圖元**。
+- 解析器的「能顯示」不等於轉檔保真；缺少實測證據的路徑不得顯示「已支援」。
+- 先保留現有 v0.5+ 功能，不重構首頁以免影響既有轉換器。
