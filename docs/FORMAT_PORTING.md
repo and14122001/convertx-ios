@@ -249,3 +249,8 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `generate-offline-sw.mjs` 的 fetch handler 從同網域檢查改成 `self.registration.scope` 範圍檢查，避免將同一 GitHub Pages 網域下其他應用資源納入本 CAD PWA 的攔截處理。
 - `tests/offline-sw.test.mjs` 增加作用域隔離回歸測試；目前新增測試尚未實際執行，原有 5/5 通過紀錄仍有效。
 - 不使用 Codespaces/Actions、不部署；正式 Linux build 與 Safari 離線 DWG→PDF 仍依使用者指示延後集中驗收。
+
+### 2026-11-03 離線準備提示與 PDF 錯誤復原
+- `src/main.ts`：載入失敗重置 `documentReady` 並禁用 PDF 按鈕，保留錯誤訊息；PDF 指令成功送出僅提示已啟動流程，**不宣稱 PDF 已產生**。
+- `index.html` 與 `src/main.ts`：新增獨立離線狀態欄位；註冊 SW 後檢查目前 origin 之 ConvertX 專用快取是否含 index.html、DWG WASM、DWG Worker、文字 Worker；更新或接管時重新檢查。顯示「核心資產已快取」仍不代表完整功能可離線運作。
+- 依使用者指示暫不啟動 Codespaces、Actions 或部署；本輪修改尚待集中執行 TypeScript、單元測試、Vite build 與 Safari DWG→PDF 驗收。
