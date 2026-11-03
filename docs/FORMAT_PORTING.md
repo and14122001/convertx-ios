@@ -123,3 +123,8 @@
 - 增加弧段 viewBox 保守邊界，避免部分弧段被裁切；SVG 圖層名稱使用 XML attribute escaping。
 - 尚缺 OCS/extrusion、複雜 BLOCK/INSERT、HATCH、DIMENSION、文字字型與 DWG WASM；目前仍屬實驗性子集。
 - 參考 Autodesk DXF LWPOLYLINE 規格：https://help.autodesk.com/cloudhelp/2017/ENU/AutoCAD-DXF/files/GUID-748FC305-F3F2-4F74-825A-61F04D757A50.htm
+
+## 2026-11-03 CAD 幾何防呆
+- `cad.html` 已避免將隱藏圖元 (60)、圖紙空間圖元 (67)、非零厚度 (39)、非零高程 (38/30/31) 錯誤投影為平面模型空間 SVG。
+- 零掃掠角 ARC 會略過並計入 skipped 統計；目前不是完整 AutoCAD 圖形輸出。
+- 待辦：處理 OCS/WCS、BLOCK/INSERT、文字/字型、尺寸、HATCH、DXF 轉 PNG/PDF，以及 DWG WASM 解析與保真測試。
