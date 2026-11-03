@@ -270,3 +270,8 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `cad-full/scripts/check-dist.mjs` 現在解析生成的 `const ASSETS` 清單，逐一比對 dist 實際檔案，禁止漏掉懶載入 JS chunk、PDF 相關資產或包含過時路徑的清單；支援 `CAD_DIST_DIR` 指向測試資料夾。
 - `cad-full/tests/offline-sw.test.mjs` 新增第 9 項回歸測試：在生成 SW 後額外新增 JS chunk，要求檢查程式回報 `offline manifest mismatch` 並失敗。
 - 此為 GitHub 程式碼更新，未執行正式編譯或新測試；等待集中驗收。零新增 Codespaces/Actions 使用。
+
+### 2026-11-03 靜態驗收健壯性
+- `check-dist.mjs`：若 `dist/assets` 不存在，明確回報 FAIL 而非拋出未處理的 ENOENT；另阻止離線清單重複條目。
+- `offline-sw.test.mjs`：新增第 10 項測試，模擬缺少整個 assets 資料夾並確認可診斷失敗。
+- 此次僅 GitHub 代碼提交，尚未實際執行新增測試、正式建置或 Safari 離線驗收；依使用者要求最後集中檢查。
