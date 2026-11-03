@@ -221,3 +221,8 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 使用者於 iPhone npm registry 查得 `lodash-es@4.18.1` 存在；GitHub `cad-full/package.json` 新增 `overrides: { "lodash-es": "4.18.1" }`。
 - **尚未驗證**：更新後 npm install/audit、MLightCAD API 相容性及 DWG→PDF；iOS `esbuild` 原生安裝仍不支援，正式 build 應移至 Linux 環境。
 - 本機 ZIP 下載的檔案不會自動跟隨 GitHub 更新，須重新下載 main ZIP 才會讀到 overrides；不建議使用 `npm audit fix --force`。
+
+### 2026-11-03 iPhone TypeScript 診斷與修正
+- 使用者 iPhone 執行 `node node_modules/typescript/bin/tsc --noEmit` 發現四項錯誤：`AcApOpenDatabaseOptions` 不接受 `readOnly`；三個 Vite static copy target 的 `rename:{stripBase:true}` 型別不符。
+- `src/main.ts` 移除 `readOnly`；`vite.config.ts` 改用合法的 `rename` callback 保留原始檔名。
+- 此為依錯誤訊息修正，**尚待 iPhone 重新執行 tsc**，不宣稱編譯或 DWG→PDF 已通過。
