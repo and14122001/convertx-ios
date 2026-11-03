@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "npm run test && tsc --noEmit && vite build",
+    "build": "npm run test && tsc --noEmit && vite build && npm run check:dist",
     "preview": "vite preview",
     "check": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "deps:check": "node scripts/npm-failover.mjs --check",
     "deps:install": "node scripts/npm-failover.mjs",
-    "deps:ci": "node scripts/npm-failover.mjs --ci"
+    "deps:ci": "node scripts/npm-failover.mjs --ci",
+    "check:dist": "node scripts/check-dist.mjs"
   },
   "dependencies": {
     "@mlightcad/cad-simple-viewer": "1.6.0",
