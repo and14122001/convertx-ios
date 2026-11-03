@@ -46,3 +46,30 @@
 6. Office / EPUB / 3D 依實測逐步移植。
 
 每次開發需同步更新本文件，保留 commit 紀錄。
+
+## 2026-11-03 GitHub 開源引擎選型（研究完成，尚未整合）
+來源：
+- 原版格式引擎：https://github.com/C4illin/ConvertX
+- 多格式瀏覽器引擎：https://github.com/hushvert/engine
+- 影音：https://github.com/ffmpegwasm/ffmpeg.wasm
+- PDF 閱讀：https://github.com/mozilla/pdf.js
+- PDF 編輯：https://github.com/Hopding/pdf-lib
+- 資料格式參考：https://github.com/harsh98trivedi/MultiFormat-Data-Converter
+
+### 決策
+1. **首選候選：hushvert/engine**。先檢查授權、依賴、建置產物、GitHub Pages 子路徑、Worker/WASM 載入及 Safari 相容性；通過後才實際導入。
+2. PDF.js + pdf-lib 先作為 PDF 渲染及操作候選；避免繼續擴充未充分測試的自製 PDF 引擎。
+3. ffmpeg.wasm 先以單執行緒、小型音訊測試；GitHub Pages 難以自行設定跨來源隔離標頭，不能直接假設多執行緒可用。
+4. 先建立可查詢的轉換路由矩陣，僅對實際成功測試的 input→output 開放轉換按鈕。
+5. 不使用會將私人檔案上傳到雲端的免費 API；不得宣稱原版所有格式都可在 iOS Safari 本機完成。
+
+### 待執行驗證
+- [ ] 查明各候選套件與轉換核心的 SPDX 授權、再散布義務。
+- [ ] 本機 build，將必要 JS/WASM/Worker 資產放在 GitHub Pages 同源路徑。
+- [ ] iPhone Safari 測試 HEIC→JPG、PDF→PNG、PDF 合併、CSV↔JSON、WAV→MP3。
+- [ ] 飛航模式重新啟動 PWA，確認核心資產可用。
+- [ ] 記錄輸入檔案大小、峰值記憶體、耗時、失敗模式。
+- [ ] 確認大檔、Office、3D 等功能不可行時的替代架構。
+
+### 完成定義
+本節為**開源候選選型與開發待辦**，不是全格式引擎已實作。任何「支援」標示須有可重現測試證據。
