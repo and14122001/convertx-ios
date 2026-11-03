@@ -13,6 +13,6 @@ const cacheName='convertx-cad-full-'+hash.digest('hex').slice(0,16)
 const source=`const CACHE=${JSON.stringify(cacheName)};const ASSETS=${JSON.stringify(['./',...files.map(x=>'./'+x)])};
 self.addEventListener('install',event=>event.waitUntil((async()=>{const cache=await caches.open(CACHE);for(const asset of ASSETS){const response=await fetch(asset,{cache:'reload'});if(!response.ok)throw Error('offline asset '+asset+' '+response.status);await cache.put(asset,response)}await self.skipWaiting()})()));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith('convertx-cad-full-')&&key!==CACHE)await caches.delete(key);await self.clients.claim()})()));
-self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;event.respondWith((async()=>{const cache=await caches.open(CACHE);const hit=await cache.match(event.request);return hit||fetch(event.request)})())});`
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||!event.request.url.startsWith(self.registration.scope))return;event.respondWith((async()=>{const cache=await caches.open(CACHE);const hit=await cache.match(event.request);if(hit)return hit;return fetch(event.request)})())});`
 writeFileSync(join(root,'sw.js'),source)
 console.log('Offline manifest:',files.length,'files,',total,'bytes')
