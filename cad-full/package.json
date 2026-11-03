@@ -1,0 +1,23 @@
+{
+  "name": "convertx-cad-dwg-pdf",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mlightcad/cad-simple-viewer": "1.6.0",
+    "@mlightcad/cad-simple-ui-plugin": "1.6.0",
+    "@mlightcad/data-model": "1.13.0",
+    "@mlightcad/libredwg-converter": "^3.13.0",
+    "@mlightcad/cad-pdf-plugin": "1.6.0"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0",
+    "vite-plugin-static-copy": "^4.0.0",
+    "typescript": "^5.9.0"
+  }
+}
