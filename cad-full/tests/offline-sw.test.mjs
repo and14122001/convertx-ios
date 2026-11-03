@@ -62,3 +62,13 @@ test('distribution check rejects files missing from offline manifest',()=>fixtur
  assert.notEqual(result.status,0)
  assert.match(result.stderr,/offline manifest mismatch/)
 }))
+
+test('distribution check reports missing assets directory without crashing',()=>fixture(root=>{
+ generate(root)
+ rmSync(join(root,'assets'),{recursive:true,force:true})
+ const check=new URL('../scripts/check-dist.mjs',import.meta.url)
+ const result=spawnSync(process.execPath,[check.pathname],{env:{...process.env,CAD_DIST_DIR:root},encoding:'utf8'})
+ assert.notEqual(result.status,0)
+ assert.match(result.stderr,/assets directory missing/)
+ assert.doesNotMatch(result.stderr,/ENOENT/)
+}))
