@@ -30,3 +30,15 @@ test('cache version changes with bundle contents',()=>fixture(root=>{
 test('repeat build produces identical cache version',()=>fixture(root=>{
  assert.equal(generate(root),generate(root))
 }))
+
+test('generator rejects missing entry HTML',()=>fixture(root=>{
+ rmSync(join(root,'index.html'))
+ const result=spawnSync(process.execPath,[script.pathname],{env:{...process.env,CAD_DIST_DIR:root},encoding:'utf8'})
+ assert.notEqual(result.status,0)
+ assert.match(result.stderr,/index\.html/)
+}))
+test('service worker must not match unrelated caches',()=>fixture(root=>{
+ const sw=generate(root)
+ assert.match(sw,/caches\.open\(CACHE\)/)
+ assert.doesNotMatch(sw,/caches\.match\(event\.request\)/)
+}))
