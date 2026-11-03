@@ -103,3 +103,11 @@
 - **不臆測 CAD 管徑、壓力、流量、比例或缺失圖元**。
 - 解析器的「能顯示」不等於轉檔保真；缺少實測證據的路徑不得顯示「已支援」。
 - 先保留現有 v0.5+ 功能，不重構首頁以免影響既有轉換器。
+
+## DWG 開源授權查核（2026-11-03）
+上游來源：https://github.com/mlightcad/cad-viewer
+- `@mlightcad/cad-simple-viewer` 的 MIT DXF 讀取與 DWG 讀取**不同**。
+- 開源 DWG 路徑需另行引入 `@mlightcad/libredwg-converter`，該部分為 **GPL-3.0**，並需要部署 worker + wasm；不可誤稱整套 DWG 解析皆為 MIT。
+- 官方指出 LibreDWG 路徑可能缺少部分實體支援，且 WASM 較大、記憶體較高，大圖可能 OOM；商用解析器不是免費開源替代品。
+- 官方示例：https://github.com/mlightcad/cad-simple-viewer-example ，採 lazy-load HTML/PDF/SVG 匯出插件。
+- 實際整合前需確認 GPL 授權義務、第三方 notices、Safari 記憶體上限與離線資產部署。**目前尚未建置 DWG 轉檔引擎。**
