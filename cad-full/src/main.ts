@@ -9,6 +9,8 @@ const exportButton=document.getElementById('export') as HTMLButtonElement
 const workerUrls={mtextRender:'./assets/mtext-renderer-worker.js',dwgParser:'./assets/libredwg-parser-worker.js'}
 let initialized=false
 let loading=false
+let documentReady=false
+let exporting=false
 function message(s:string){status.textContent=s}
 async function initialize(){if(initialized)return
   AcDbDatabaseConverterManager.instance.register(AcDbFileType.DWG,new AcDbLibreDwgConverter({convertByEntityType:false,useWorker:true,parserWorkerUrl:workerUrls.dwgParser}))
@@ -18,11 +20,11 @@ async function initialize(){if(initialized)return
   registerLazyPdfPlugin(AcApDocManager.instance.pluginManager)
   initialized=true
 }
-fileInput.addEventListener('change',async()=>{if(loading)return;loading=true;exportButton.disabled=true;const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();validateCadFile(file.name,bytes);await AcApDocManager.instance.openDocument(file.name,bytes,{minimumChunkSize:1000,readOnly:true});exportButton.disabled=false;message('圖面已載入。請先檢查圖元與字型，再輸出 PDF。')}catch(e){message('失敗：'+(e instanceof Error?e.message:String(e)))}finally{loading=false}})
-exportButton.addEventListener('click',()=>{if(!initialized)return;message('正在開啟 PDF 匯出流程；請依提示確認範圍與比例');AcApDocManager.instance.sendStringToExecute('cpdf')})
+fileInput.addEventListener('change',async()=>{if(loading)return;loading=true;exportButton.disabled=true;documentReady=false;const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();validateCadFile(file.name,bytes);await AcApDocManager.instance.openDocument(file.name,bytes,{minimumChunkSize:1000,readOnly:true});documentReady=true;exportButton.disabled=false;message('圖面已載入。請先檢查圖元與字型，再輸出 PDF。')}catch(e){message('失敗：'+(e instanceof Error?e.message:String(e)))}finally{loading=false}})
+exportButton.addEventListener('click',()=>{if(!initialized||!documentReady||loading||exporting)return;exporting=true;exportButton.disabled=true;try{message('已呼叫 PDF 匯出流程；請依提示確認範圍與比例。尚未驗證 PDF 下載成功。');AcApDocManager.instance.sendStringToExecute('cpdf')}catch(e){message('無法啟動 PDF 匯出：'+String(e))}finally{exporting=false;exportButton.disabled=!documentReady}})
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    void navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(e=>console.warn('Offline cache unavailable:',e))
+    void navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(async reg=>{if(reg.active){const cacheKeys=await caches.keys();if(!cacheKeys.some(k=>k.startsWith('convertx-cad-full-')))console.warn('離線 CAD 資產尚未完整快取；請保持連線等待安裝完成')}}).catch(e=>console.warn('Offline cache unavailable:',e))
   })
 }
