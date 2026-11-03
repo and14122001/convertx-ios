@@ -52,3 +52,13 @@ test('service worker only intercepts requests inside its registration scope',()=
 test('failed installation cleans incomplete cache',()=>fixture(root=>{const sw=generate(root);assert.match(sw,/catch\(err\)\{await caches\.delete\(CACHE\);throw err\}/)}))
 
 test('updates do not forcibly take over active CAD sessions',()=>fixture(root=>{const sw=generate(root);assert.doesNotMatch(sw,/self\.skipWaiting\(/);assert.match(sw,/self\.addEventListener\('activate'/)}))
+
+test('distribution check rejects files missing from offline manifest',()=>fixture(root=>{
+ for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'cpdf':'worker')
+ generate(root)
+ writeFileSync(join(root,'assets','late-chunk.js'),'late chunk')
+ const check=new URL('../scripts/check-dist.mjs',import.meta.url)
+ const result=spawnSync(process.execPath,[check.pathname],{env:{...process.env,CAD_DIST_DIR:root},encoding:'utf8'})
+ assert.notEqual(result.status,0)
+ assert.match(result.stderr,/offline manifest mismatch/)
+}))
