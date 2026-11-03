@@ -73,3 +73,10 @@
 
 ### 完成定義
 本節為**開源候選選型與開發待辦**，不是全格式引擎已實作。任何「支援」標示須有可重現測試證據。
+
+## 2026-11-03 實作紀錄：SVG rasterization
+- 新增 `svg.html`，SVG→PNG/JPG/WebP；Canvas 原生解碼，無第三方依賴、無上傳。
+- 限制：2 MB SVG、最大單邊 8192 px、最多 1600 萬畫素；僅支援靜態且不含外部資源的 SVG 子集。
+- 已阻擋 script、foreignObject、事件屬性、外部引用、CSS url()、DTD/ENTITY 等常見風險；不保證能安全處理任意惡意 SVG，後續仍需安全審核。
+- 已更新首頁連結與 Service Worker 預快取。
+- **尚未完成 iPhone Safari 實機與離線重啟驗收**，不得標示為全面相容。
