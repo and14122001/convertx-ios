@@ -164,3 +164,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 新增 `cad-full/tests/file-validation.test.mjs` 七項零依賴測試，`npm run build` 先跑測試與 TypeScript 檢查再執行 Vite。
 - 本次在執行環境確認 Node v22.16.0 / npm 10.9.2，但 `registry.npmjs.org` DNS 回傳 `EAI_AGAIN`；**測試腳本尚未在 GitHub checkout 執行、套件未安裝、Vite 未建置、DWG→PDF 未驗收**。
 - 待處理：核對 MLightCAD 套件版本、Worker/WASM 複製路徑與 PDF 外掛實際型別，建置後在 iPhone 飛航模式驗證 PDF 可開啟與圖元保真。
+
+### npm 多備援（2026-11-03）
+- `cad-full/scripts/npm-failover.mjs` 依序嘗試 npm 官方、Yarn、npmmirror、華為雲 Registry。每個來源先執行 `npm ping`，再執行 `npm install`；任一步失敗會嘗試下一來源，全部失敗則以非零結束碼回報。
+- `cd cad-full && npm run deps:check`：檢查可用 Registry；`npm run deps:install`：多備援安裝；有 lockfile 後可用 `npm run deps:ci`。
+- 每次嘗試設 45 秒上限、較短 npm 網路逾時，避免單一 Registry 卡住整批工作；不修改使用者全域 npm 設定。
+- 安全性：不關閉 TLS 驗證；正式建置固定版本並提交 package-lock.json，核對 integrity。鏡像可能不同步或套件不存在；切換來源無法解決全面 DNS 故障。
+- **此批已提交程式，但未在可存取 npm Registry 的 checkout 中執行完整安裝/建置。**
