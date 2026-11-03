@@ -117,3 +117,9 @@
 - 未支援圖元會在頁面列出統計；DWG 明確拒絕，避免假轉檔；LWPOLYLINE bulge、BLOCK/INSERT、TEXT、DIMENSION、HATCH、線型等尚不支援。
 - 已加入首頁入口及 Service Worker 離線預快取。
 - **未通過真實 CAD 圖檔保真驗收，不能當作完整 DXF/DWG 轉換器**；後續需導入 MLightCAD 核心並完成 Safari 測試。
+
+## 2026-11-03 DXF 圓弧增量
+- `LWPOLYLINE` 群組碼 42 bulge 已轉 SVG elliptical arc（半徑 = chord × (1+b²)/(4|b|)），包含封閉多段線最後一段。
+- 增加弧段 viewBox 保守邊界，避免部分弧段被裁切；SVG 圖層名稱使用 XML attribute escaping。
+- 尚缺 OCS/extrusion、複雜 BLOCK/INSERT、HATCH、DIMENSION、文字字型與 DWG WASM；目前仍屬實驗性子集。
+- 參考 Autodesk DXF LWPOLYLINE 規格：https://help.autodesk.com/cloudhelp/2017/ENU/AutoCAD-DXF/files/GUID-748FC305-F3F2-4F74-825A-61F04D757A50.htm
