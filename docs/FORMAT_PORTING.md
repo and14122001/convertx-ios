@@ -191,3 +191,8 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `check-dist.mjs` 新增 `sw.js` 與 DWG worker/wasm 預快取檢查。安裝成功後執行 `npm run build` 才會產生真正可離線部署的 `dist/`。
 - 風險：Safari 快取容量限制、首次上線必須完整下載後才可離線、PDF 懶載入套件與 Worker 路徑仍須實際瀏覽器驗證。尚未完成 npm 安裝、Vite build、部署或 iPhone DWG→PDF 驗收。
 - 依據：https://github.com/mlightcad/cad-simple-viewer-example （官方示範 Vite 靜態複製與懶載入 PDF）。
+
+### 2026-11-03 離線快取回歸測試
+- 修正 `generate-offline-sw.mjs`：快取命中只查詢目前版本 `CACHE`，避免意外讀取其他應用或舊版快取；允許 `CAD_DIST_DIR` 指定隔離測試目錄，並要求 `index.html` 存在。
+- 新增 `tests/offline-sw.test.mjs` 三項測試：必要資產預快取、內容變更造成版本變更、相同內容版本穩定。`npm run test` 已包含 `tests/*.test.mjs`。
+- 這是原始碼與測試案例提交；**尚未在 GitHub checkout 實際執行 Node 測試、npm 安裝或瀏覽器 DWG→PDF 驗收**。下一關鍵步驟仍是可用的建置/部署環境。
