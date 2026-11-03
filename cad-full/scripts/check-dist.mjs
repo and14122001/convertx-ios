@@ -15,8 +15,9 @@ if(existsSync(join(root,'assets'))){
   const js=names.filter(n=>/\.js$/.test(n)&&n!=='mtext-renderer-worker.js'&&n!=='libredwg-parser-worker.js')
   if(js.length===0){console.error('FAIL: no application JavaScript bundle');failed=true}
   const pdfBundle=js.some(n=>readFileSync(join(root,'assets',n),'utf8').includes('cpdf'))
-  console.log(pdfBundle?'PASS':'WARN','PDF export command in bundled JavaScript')
+  console.log(pdfBundle?'PASS':'FAIL','PDF export command in bundled JavaScript')
+  if(!pdfBundle)failed=true
 }
-if(existsSync(join(root,'sw.js'))){const sw=readFileSync(join(root,'sw.js'),'utf8');if(!sw.includes('libredwg-web.wasm')||!sw.includes('libredwg-parser-worker.js')){console.error('FAIL: offline cache omits DWG runtime');failed=true}}
+if(existsSync(join(root,'sw.js'))){const sw=readFileSync(join(root,'sw.js'),'utf8');if(!sw.includes('libredwg-web.wasm')||!sw.includes('libredwg-parser-worker.js')||!sw.includes('mtext-renderer-worker.js')){console.error('FAIL: offline cache omits DWG runtime');failed=true}}
 if(failed){console.error('CAD offline bundle incomplete; deployment must not proceed');process.exitCode=1}
 else console.log('Static asset smoke check passed; browser DWG/PDF functionality remains unverified')
