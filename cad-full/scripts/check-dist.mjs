@@ -10,7 +10,8 @@ for(const file of required){
   console.log(ok?'PASS':'FAIL',file,ok?statSync(path).size+' bytes':'missing or empty')
   if(!ok)failed=true
 }
-if(existsSync(join(root,'assets'))){
+if(!existsSync(join(root,'assets'))){console.error('FAIL: assets directory missing');failed=true}
+else{
   const names=readdirSync(join(root,'assets'))
   const js=names.filter(n=>/\.js$/.test(n)&&n!=='mtext-renderer-worker.js'&&n!=='libredwg-parser-worker.js')
   if(js.length===0){console.error('FAIL: no application JavaScript bundle');failed=true}
@@ -26,6 +27,7 @@ if(existsSync(join(root,'sw.js'))){
     let assets=[]
     try{assets=JSON.parse(manifest[1])}catch{console.error('FAIL: invalid offline manifest');failed=true}
     const paths=assets.filter(x=>x!=='./').map(x=>x.replace(/^\.\//,''))
+    if(new Set(paths).size!==paths.length){console.error('FAIL: duplicate offline manifest entries');failed=true}
     const diskFiles=(dir,prefix='')=>readdirSync(dir,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?diskFiles(join(dir,entry.name),prefix+entry.name+'/'):[prefix+entry.name])
     const actual=diskFiles(root).filter(x=>x!=='sw.js')
     const missing=actual.filter(x=>!paths.includes(x))
