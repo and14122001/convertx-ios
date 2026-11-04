@@ -72,3 +72,19 @@ test('distribution check reports missing assets directory without crashing',()=>
  assert.match(result.stderr,/assets directory missing/)
  assert.doesNotMatch(result.stderr,/ENOENT/)
 }))
+
+test('offline manifest includes itself and lazy-loaded PDF chunk',()=>fixture(root=>{
+ writeFileSync(join(root,'assets','pdf-lazy.js'),'PDF module')
+ const sw=generate(root)
+ const manifest=JSON.parse(readFileSync(join(root,'offline-manifest.json'),'utf8'))
+ assert.match(manifest.cacheName,/^convertx-cad-full-[0-9a-f]{16}$/)
+ assert.ok(manifest.assets.includes('./assets/pdf-lazy.js'))
+ assert.ok(manifest.assets.includes('./offline-manifest.json'))
+ assert.ok(sw.includes('./offline-manifest.json'))
+}))
+test('offline manifest is deterministic across repeat builds',()=>fixture(root=>{
+ generate(root)
+ const first=readFileSync(join(root,'offline-manifest.json'),'utf8')
+ generate(root)
+ assert.equal(readFileSync(join(root,'offline-manifest.json'),'utf8'),first)
+}))
