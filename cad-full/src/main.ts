@@ -28,16 +28,21 @@ exportButton.addEventListener('click',()=>{if(!initialized||!documentReady||load
 const offlineStatus=document.getElementById('offline-status') as HTMLElement
 function setOfflineStatus(s:string){offlineStatus.textContent='離線狀態：'+s}
 async function checkOfflineCoreAssets(){
+  // A few core files do not prove the lazy PDF chunks are available offline.
+  const manifestUrl=new URL('./offline-manifest.json',location.href)
+  const response=await fetch(manifestUrl,{cache:'no-store'})
+  if(!response.ok) return false
+  const manifest:unknown=await response.json()
+  if(!manifest||typeof manifest!=='object')return false
+  const {cacheName,assets}=manifest as {cacheName?:unknown,assets?:unknown}
+  if(typeof cacheName!=='string'||!/^convertx-cad-full-[0-9a-f]{16}$/.test(cacheName))return false
+  if(!Array.isArray(assets)||assets.length===0||!assets.every(x=>typeof x==='string'&&x.startsWith('./')))return false
   const scope=new URL('./',location.href)
-  const required=['index.html','assets/libredwg-web.wasm','assets/libredwg-parser-worker.js','assets/mtext-renderer-worker.js']
-  const keys=(await caches.keys()).filter(k=>k.startsWith('convertx-cad-full-'))
-  for(const key of keys.reverse()){
-    const cache=await caches.open(key)
-    const results=await Promise.all(required.map(file=>cache.match(new URL(file,scope).href)))
-    if(results.every(Boolean))return true
-  }
-  return false
+  const cache=await caches.open(cacheName)
+  const results=await Promise.all(assets.map(x=>cache.match(new URL(x,scope).href)))
+  return results.every(Boolean)
 }
+
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     setOfflineStatus('檢查核心資產中…')
@@ -45,7 +50,7 @@ if('serviceWorker' in navigator){
       const update=async()=>{
         try{
           const ready=await checkOfflineCoreAssets()
-          setOfflineStatus(ready?'核心資產已快取；仍須實機離線驗收':'尚未完整快取，請保持網路連線')
+          setOfflineStatus(ready?'完整建置資產已快取；仍須實機離線驗收':'尚未完整快取，請保持網路連線')
         }catch(e){setOfflineStatus('無法檢查快取：'+String(e))}
       }
       await update()
