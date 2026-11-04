@@ -275,3 +275,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `check-dist.mjs`：若 `dist/assets` 不存在，明確回報 FAIL 而非拋出未處理的 ENOENT；另阻止離線清單重複條目。
 - `offline-sw.test.mjs`：新增第 10 項測試，模擬缺少整個 assets 資料夾並確認可診斷失敗。
 - 此次僅 GitHub 代碼提交，尚未實際執行新增測試、正式建置或 Safari 離線驗收；依使用者要求最後集中檢查。
+
+### 2026-11-04 P0 離線完整性驗證批次（尚待集中執行）
+- 現有 UI 僅檢查四項核心檔案即提示已快取，可能漏掉 PDF lazy chunk；修正為建置時產生 `offline-manifest.json`，記錄內容雜湊版本鍵及完整資產清單（含 manifest 自身）。
+- `src/main.ts` 依版本鍵開啟指定 CacheStorage，逐項確認所有資產存在後才提示「完整建置資產已快取」；仍不等於實機 PDF 成功。離線時 manifest 透過同源 Service Worker 快取取得；首次安裝失敗不得提示成功。
+- `tests/offline-sw.test.mjs` 新增 PDF lazy chunk 被列入清單與重複產生清單穩定性兩項測試。
+- 授權：`@mlightcad/libredwg-converter` 的 GPL-3.0 再散布義務仍須於發行前逐項核對 LICENSE、完整對應原始碼取得方式、第三方通知與修改告知；不能以 MIT viewer 掩蓋 DWG GPL 路徑。
+- 待驗收：Node 測試、tsc、Vite build、SW 安裝/更新、Safari 飛航模式 DWG→PDF、兩份真實 DWG 保真比對。未啟動 Codespaces/Actions，未部署。
+- CadCraft 參考：getcadcraft/cadcraft `app/dwg/read-async.js` 有 JS Worker 失敗回退；storytold/cadcraft `crates/dwg/Cargo.toml` 在 wasm32 排除 acadrust，故不將其桌面 DWG 橋接視為 Safari 可用。兩者皆只作候選，未整合。
