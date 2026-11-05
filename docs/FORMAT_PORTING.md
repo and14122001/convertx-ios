@@ -283,3 +283,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 授權：`@mlightcad/libredwg-converter` 的 GPL-3.0 再散布義務仍須於發行前逐項核對 LICENSE、完整對應原始碼取得方式、第三方通知與修改告知；不能以 MIT viewer 掩蓋 DWG GPL 路徑。
 - 待驗收：Node 測試、tsc、Vite build、SW 安裝/更新、Safari 飛航模式 DWG→PDF、兩份真實 DWG 保真比對。未啟動 Codespaces/Actions，未部署。
 - CadCraft 參考：getcadcraft/cadcraft `app/dwg/read-async.js` 有 JS Worker 失敗回退；storytold/cadcraft `crates/dwg/Cargo.toml` 在 wasm32 排除 acadrust，故不將其桌面 DWG 橋接視為 Safari 可用。兩者皆只作候選，未整合。
+
+
+### 2026-11-05 離線發行一致性加固（待集中執行）
+- `cad-full/scripts/check-dist.mjs`：除了比對 SW 的 ASSETS 與 dist 實際檔案，現在要求 `offline-manifest.json` 存在、可解析，且 `cacheName` 和 `assets` 必須與 SW 完全一致。避免 UI 顯示的快取版本與實際 SW 不同。
+- `generate-offline-sw.mjs`：只排除 dist 根目錄的 `sw.js` 與 `offline-manifest.json`；不再意外排除 `assets/*sw.js` 等合法資產。
+- `offline-sw.test.mjs`：新增 JSON/SW 不一致失敗、完整發行產物成功、巢狀 *sw.js 納入快取等 3 項回歸案例；合計 15 項測試案例（尚未全部執行）。
+- 測試限制：執行環境嘗試從 raw.githubusercontent.com 取得最新檔案時 DNS 無法解析；未在 checkout 中實際執行新測試。沒有觸發 GitHub Actions、Codespaces 或部署。
+- 尚未處理的核心阻塞：PDF `cpdf` 目前只有命令啟動狀態，缺少可驗證的輸出 PDF 位元組、頁面/比例設定與真實 DWG 保真比對；不能將離線快取通過視為 DWG→PDF 驗收通過。
