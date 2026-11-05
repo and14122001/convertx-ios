@@ -109,3 +109,10 @@ test('distribution check accepts matching complete offline assets',()=>fixture(r
  assert.equal(result.status,0,result.stderr)
  assert.match(result.stdout,/Static asset smoke check passed/)
 }))
+
+test('nested files ending with sw.js remain in offline manifest',()=>fixture(root=>{
+ writeFileSync(join(root,'assets','viewer-sw.js'),'worker')
+ generate(root)
+ const manifest=JSON.parse(readFileSync(join(root,'offline-manifest.json'),'utf8'))
+ assert.ok(manifest.assets.includes('./assets/viewer-sw.js'))
+}))
