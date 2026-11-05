@@ -19,6 +19,7 @@ else{
   console.log(pdfBundle?'PASS':'FAIL','PDF export command in bundled JavaScript')
   if(!pdfBundle)failed=true
 }
+if(!existsSync(join(root,'offline-manifest.json'))){console.error('FAIL: offline-manifest.json missing');failed=true}
 if(existsSync(join(root,'sw.js'))){
   const sw=readFileSync(join(root,'sw.js'),'utf8')
   const manifest=sw.match(/const ASSETS=(\[[^;]+\]);/)
@@ -27,6 +28,16 @@ if(existsSync(join(root,'sw.js'))){
     let assets=[]
     try{assets=JSON.parse(manifest[1])}catch{console.error('FAIL: invalid offline manifest');failed=true}
     const paths=assets.filter(x=>x!=='./').map(x=>x.replace(/^\.\//,''))
+    const manifestPath=join(root,'offline-manifest.json')
+    if(existsSync(manifestPath)){
+      try{
+        const json=JSON.parse(readFileSync(manifestPath,'utf8'))
+        const cache=sw.match(/const CACHE=("[^"]+");/)
+        if(!cache||json.cacheName!==JSON.parse(cache[1])||JSON.stringify(json.assets)!==JSON.stringify(assets)){
+          console.error('FAIL: offline JSON manifest differs from service worker');failed=true
+        }
+      }catch(e){console.error('FAIL: invalid offline JSON manifest',String(e));failed=true}
+    }
     if(new Set(paths).size!==paths.length){console.error('FAIL: duplicate offline manifest entries');failed=true}
     const diskFiles=(dir,prefix='')=>readdirSync(dir,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?diskFiles(join(dir,entry.name),prefix+entry.name+'/'):[prefix+entry.name])
     const actual=diskFiles(root).filter(x=>x!=='sw.js')
