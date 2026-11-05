@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { join, relative, sep } from 'node:path'
 const root=process.env.CAD_DIST_DIR||'dist'
 function collect(dir){return readdirSync(dir,{withFileTypes:true}).flatMap(e=>{const p=join(dir,e.name);return e.isDirectory()?collect(p):[p]})}
-const files=collect(root).filter(p=>!p.endsWith('sw.js')&&!p.endsWith('offline-manifest.json')).map(p=>relative(root,p).split(sep).join('/'))
+const files=collect(root).map(p=>relative(root,p).split(sep).join('/')).filter(p=>p!=='sw.js'&&p!=='offline-manifest.json')
 if(!files.includes('index.html'))throw new Error('Missing index.html in offline bundle')
 const total=files.reduce((n,p)=>n+statSync(join(root,p)).size,0)
 if(total>150*1024*1024)throw new Error('Offline bundle exceeds 150 MiB; inspect WASM and chunks before shipping')
