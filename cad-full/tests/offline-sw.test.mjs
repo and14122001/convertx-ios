@@ -88,3 +88,24 @@ test('offline manifest is deterministic across repeat builds',()=>fixture(root=>
  generate(root)
  assert.equal(readFileSync(join(root,'offline-manifest.json'),'utf8'),first)
 }))
+
+test('distribution check rejects mismatched JSON manifest cache version',()=>fixture(root=>{
+ for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'cpdf':'worker')
+ generate(root)
+ const path=join(root,'offline-manifest.json')
+ const manifest=JSON.parse(readFileSync(path,'utf8'))
+ manifest.cacheName='convertx-cad-full-0000000000000000'
+ writeFileSync(path,JSON.stringify(manifest))
+ const check=new URL('../scripts/check-dist.mjs',import.meta.url)
+ const result=spawnSync(process.execPath,[check.pathname],{env:{...process.env,CAD_DIST_DIR:root},encoding:'utf8'})
+ assert.notEqual(result.status,0)
+ assert.match(result.stderr,/offline JSON manifest differs from service worker/)
+}))
+test('distribution check accepts matching complete offline assets',()=>fixture(root=>{
+ for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'cpdf':'worker')
+ generate(root)
+ const check=new URL('../scripts/check-dist.mjs',import.meta.url)
+ const result=spawnSync(process.execPath,[check.pathname],{env:{...process.env,CAD_DIST_DIR:root},encoding:'utf8'})
+ assert.equal(result.status,0,result.stderr)
+ assert.match(result.stdout,/Static asset smoke check passed/)
+}))
