@@ -291,3 +291,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `offline-sw.test.mjs`：新增 JSON/SW 不一致失敗、完整發行產物成功、巢狀 *sw.js 納入快取等 3 項回歸案例；合計 15 項測試案例（尚未全部執行）。
 - 測試限制：執行環境嘗試從 raw.githubusercontent.com 取得最新檔案時 DNS 無法解析；未在 checkout 中實際執行新測試。沒有觸發 GitHub Actions、Codespaces 或部署。
 - 尚未處理的核心阻塞：PDF `cpdf` 目前只有命令啟動狀態，缺少可驗證的輸出 PDF 位元組、頁面/比例設定與真實 DWG 保真比對；不能將離線快取通過視為 DWG→PDF 驗收通過。
+
+### 2026-11-06 P0 測試入口修正與 PDF 上游 API 查核
+- 發現 `cad-full/package.json` 的 `npm test` 只執行 `offline-sw.test.mjs`，遺漏已存在的 `file-validation.test.mjs`（7 項 DWG/DXF 檔頭檢查）。改為 `scripts/run-tests.mjs` 自動列舉 `tests/*.test.mjs` 並逐檔執行，任一檔失敗即讓 build 失敗；避免依賴 iPhone a-Shell 不支援的 `node --test` 啟動旗標。
+- 新增離線資產清單重複條目回歸案例；`offline-sw.test.mjs` 共 16 項，`file-validation.test.mjs` 7 項，**總共 23 項已提交測試案例，非 23 項已通過**。
+- 2026-11-06 查核上游 `mlightcad/cad-viewer/packages/cad-pdf-plugin/README.md`：`-cpdf` 為命令列提示式匯出，`cpdf` 在無 UI 時為相同功能；上游另提供 `AcApPdfConvertor`、`resolveAcApPdfExportOptions`，並透過 `@mlightcad/pdf-renderer` 產生 PDF 位元組。現有 `sendStringToExecute('cpdf')` 僅能確認指令已排入佇列，**不能驗證 PDF 已產生**。後續優先改為可檢查位元組的轉換流程，但需先確認實際套件型別、context/database 取得方式，避免盲改。
+- 依據：https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md ；https://www.npmjs.com/package/@mlightcad/pdf-renderer
+- 執行環境 `git ls-remote` 無法解析 `github.com` DNS，無法下載 checkout 進行實際 Node 測試；以上修改已由 GitHub connector 提交，**尚未執行新增測試、Linux Vite build、兩份真實 DWG 保真比對或 iPhone 飛航模式 DWG→PDF 驗收**。
+- 重要授權閘門維持：LibreDWG GPL-3.0 對應原始碼、著作權與 LICENSE/NOTICE 檔案，必須在 Pages 發行前確認；不得以 PDF plugin MIT 授權替代 DWG 解析器 GPL 義務。
