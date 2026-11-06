@@ -8,7 +8,7 @@
     "build": "npm run test && tsc --noEmit && vite build && npm run offline:generate && npm run check:dist",
     "preview": "vite preview",
     "check": "tsc --noEmit",
-    "test": "node tests/offline-sw.test.mjs",
+    "test": "node scripts/run-tests.mjs",
     "deps:check": "node scripts/npm-failover.mjs --check",
     "deps:install": "node scripts/npm-failover.mjs",
     "deps:ci": "node scripts/npm-failover.mjs --ci",
