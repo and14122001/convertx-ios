@@ -116,3 +116,23 @@ test('nested files ending with sw.js remain in offline manifest',()=>fixture(roo
  const manifest=JSON.parse(readFileSync(join(root,'offline-manifest.json'),'utf8'))
  assert.ok(manifest.assets.includes('./assets/viewer-sw.js'))
 }))
+
+test('distribution check rejects duplicate offline asset entries',()=>fixture(root=>{
+ for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'cpdf':'worker')
+ generate(root)
+ const swPath=join(root,'sw.js')
+ const sw=readFileSync(swPath,'utf8')
+ const match=sw.match(/const ASSETS=(\[[^;]+\]);/)
+ assert.ok(match)
+ const assets=JSON.parse(match[1])
+ assets.push(assets[1])
+ writeFileSync(swPath,sw.replace(match[0],'const ASSETS='+JSON.stringify(assets)+';'))
+ const manifestPath=join(root,'offline-manifest.json')
+ const manifest=JSON.parse(readFileSync(manifestPath,'utf8'))
+ manifest.assets=assets
+ writeFileSync(manifestPath,JSON.stringify(manifest))
+ const check=new URL('../scripts/check-dist.mjs',import.meta.url)
+ const result=spawnSync(process.execPath,[check.pathname],{env:{...process.env,CAD_DIST_DIR:root},encoding:'utf8'})
+ assert.notEqual(result.status,0)
+ assert.match(result.stderr,/duplicate offline manifest entries/)
+}))
