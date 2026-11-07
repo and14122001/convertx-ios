@@ -299,3 +299,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 依據：https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md ；https://www.npmjs.com/package/@mlightcad/pdf-renderer
 - 執行環境 `git ls-remote` 無法解析 `github.com` DNS，無法下載 checkout 進行實際 Node 測試；以上修改已由 GitHub connector 提交，**尚未執行新增測試、Linux Vite build、兩份真實 DWG 保真比對或 iPhone 飛航模式 DWG→PDF 驗收**。
 - 重要授權閘門維持：LibreDWG GPL-3.0 對應原始碼、著作權與 LICENSE/NOTICE 檔案，必須在 Pages 發行前確認；不得以 PDF plugin MIT 授權替代 DWG 解析器 GPL 義務。
+
+### 2026-11-07 DWG 單位與版本保守預檢（未完成 PDF 保真）
+- 新增 `cad-full/src/dwg-preflight.mjs`：識別已知 AC10xx 版本；未知版本保留未知，不以標頭推論 INSUNITS、圖層、XREF、字型、BLOCK/INSERT、尺寸或 HATCH 完整性。
+- `main.ts` 載入後顯示版本與圖元/外部參照警示；`index.html` 提供預設「未知／未核對」的人工單位選擇；PDF 指令前明示**選擇單位尚未套用至輸出比例**，不得視為可量測工程圖。
+- 新增 `tests/dwg-preflight.test.mjs` 六項測試案例，依現有 `run-tests.mjs` 自動納入；新案例尚未在 GitHub checkout 內完整執行。於隔離 Node 環境重建同邏輯進行 5 項 smoke assertions 成功，但**不等於 GitHub 原檔測試、TypeScript、Vite 或 Safari 通過**。
+- 授權發行門檻：LibreDWG GPL-3.0 路徑須確認實際 npm tarball 內 LICENSE/NOTICE、相依授權、對應原始碼及發行方式；尚未取得完整 tarball，不可標示通過。
+- P0 未完成：PDF bytes 可驗證回傳、紙張/比例真實控制、兩份真實 DWG 比對、iPhone Safari/PWA 飛航模式下載 PDF。
+- 本批未啟動 Codespaces、Actions 或部署，未變更其他 repo/排程。
