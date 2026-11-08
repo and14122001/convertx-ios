@@ -307,3 +307,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 授權發行門檻：LibreDWG GPL-3.0 路徑須確認實際 npm tarball 內 LICENSE/NOTICE、相依授權、對應原始碼及發行方式；尚未取得完整 tarball，不可標示通過。
 - P0 未完成：PDF bytes 可驗證回傳、紙張/比例真實控制、兩份真實 DWG 比對、iPhone Safari/PWA 飛航模式下載 PDF。
 - 本批未啟動 Codespaces、Actions 或部署，未變更其他 repo/排程。
+
+### 2026-11-08 PDF 基本位元組檢查（尚非 DWG→PDF 驗收）
+- 新增 `src/pdf-audit.mjs`：僅檢查 PDF 版本檔頭、最小長度、結尾 EOF；不代表頁數、MediaBox、字型、向量保真或實際可開啟。
+- 新增 `tests/pdf-audit.test.mjs` 五項案例，並於 `index.html`、`src/main.ts` 加入手動選取 PDF 的基本檢查入口。此入口不能證明該 PDF 來自當前 DWG。
+- 查閱上游 `mlightcad/cad-viewer/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts`：目前上游使用 `acexPdfExportDatabase` 取得 Uint8Array 再下載，但尚未核對本專案固定的 1.7.8 版 API，故暫不直接取代 `cpdf`。
+- 新增測試未在完整 checkout 執行；GPL 授權發行查核、PDF 頁面尺寸與比例、兩份真實 DWG 比對及 iPhone Safari 飛航模式驗收仍未完成。未使用 Actions、Codespaces 或部署。
