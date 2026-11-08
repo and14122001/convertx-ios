@@ -1,3 +1,4 @@
+import {inspectPdfBytes} from './pdf-audit.mjs'
 import {inspectDwgHeader,parseUnitChoice} from './dwg-preflight.mjs'
 import { validateCadFile } from './file-validation'
 import { AcApDocManager } from '@mlightcad/cad-simple-viewer'
@@ -67,3 +68,15 @@ if('serviceWorker' in navigator){
     }).catch(e=>setOfflineStatus('無法註冊離線服務：'+String(e)))
   })
 }else setOfflineStatus('此瀏覽器不支援 Service Worker')
+
+const pdfCheck=document.getElementById('pdf-check') as HTMLInputElement
+pdfCheck.addEventListener('change',async()=>{
+ const file=pdfCheck.files?.[0]
+ if(!file)return
+ try{
+  if(!/\.pdf$/i.test(file.name))throw new Error('請選擇 PDF 檔')
+  const result=inspectPdfBytes(await file.arrayBuffer())
+  message('已檢查 '+file.name+'：PDF '+result.version+'、'+result.byteLength+' bytes；'+result.warnings.join('；')+'。此檢查無法確認檔案由目前 DWG 匯出。')
+ }catch(e){message('PDF 基本檢查失敗：'+(e instanceof Error?e.message:String(e)))}
+ finally{pdfCheck.value=''}
+})
