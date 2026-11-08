@@ -319,3 +319,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 此修正只提高「快取完整」提示的可信度，**不是** DWG 解析或 PDF 匯出通過的證據。
 - 本輪未在完整 checkout 執行 npm test / tsc / Vite build，未測試真實 DWG 或 iPhone 飛航模式；測試狀態維持未驗收。
 - 後續首要阻塞：在可用 Linux 建置環境取得固定依賴與 PDF 外掛實際匯出位元組，接上可驗證頁面尺寸/比例，再做兩份真實 DWG 比對。
+
+### 2026-11-08 PDF 指令非同步失敗處理
+- `cad-full/src/main.ts` 將 PDF 匯出事件改為 async，等待 `sendStringToExecute('cpdf')` 的同步或 Promise 錯誤，避免忽略非同步指令失敗。
+- 訊息區分「指令已送出」與「PDF 位元組、尺寸、下載已驗證」，後者仍未達成。若上游命令只排程而不等待匯出完成，鎖仍不能代表整個 PDF 對話框生命週期。
+- 新增 `tests/pdf-dispatch.test.mjs` 兩項靜態回歸案例；尚未在完整 checkout 執行，不宣稱通過。
+- 下一步驗證 1.7.8 PDF 外掛直接回傳位元組、頁面/比例輸出及實機真實 DWG。
