@@ -313,3 +313,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 新增 `tests/pdf-audit.test.mjs` 五項案例，並於 `index.html`、`src/main.ts` 加入手動選取 PDF 的基本檢查入口。此入口不能證明該 PDF 來自當前 DWG。
 - 查閱上游 `mlightcad/cad-viewer/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts`：目前上游使用 `acexPdfExportDatabase` 取得 Uint8Array 再下載，但尚未核對本專案固定的 1.7.8 版 API，故暫不直接取代 `cpdf`。
 - 新增測試未在完整 checkout 執行；GPL 授權發行查核、PDF 頁面尺寸與比例、兩份真實 DWG 比對及 iPhone Safari 飛航模式驗收仍未完成。未使用 Actions、Codespaces 或部署。
+
+### 2026-11-08 離線清單防護補強（本輪）
+- `cad-full/src/main.ts` 離線狀態檢查新增資產路徑白名單、拒絕 `..` / 雙斜線、重複項目，並要求 `index.html` 與 LibreDWG worker 存在；保留建置清單必要的 `./` 根路徑。
+- 此修正只提高「快取完整」提示的可信度，**不是** DWG 解析或 PDF 匯出通過的證據。
+- 本輪未在完整 checkout 執行 npm test / tsc / Vite build，未測試真實 DWG 或 iPhone 飛航模式；測試狀態維持未驗收。
+- 後續首要阻塞：在可用 Linux 建置環境取得固定依賴與 PDF 外掛實際匯出位元組，接上可驗證頁面尺寸/比例，再做兩份真實 DWG 比對。
