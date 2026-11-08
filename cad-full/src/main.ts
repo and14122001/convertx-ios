@@ -40,7 +40,9 @@ async function checkOfflineCoreAssets(){
   if(!manifest||typeof manifest!=='object')return false
   const {cacheName,assets}=manifest as {cacheName?:unknown,assets?:unknown}
   if(typeof cacheName!=='string'||!/^convertx-cad-full-[0-9a-f]{16}$/.test(cacheName))return false
-  if(!Array.isArray(assets)||assets.length===0||!assets.every(x=>typeof x==='string'&&x.startsWith('./')))return false
+  if(!Array.isArray(assets)||assets.length===0||!assets.every(x=>typeof x==='string'&&/^\.\/[a-zA-Z0-9_./-]+$/.test(x)&&!x.includes('..')&&!x.includes('//')))return false
+  if(new Set(assets).size!==assets.length)return false
+  if(!assets.includes('./index.html')||!assets.includes('./assets/libredwg-parser-worker.js'))return false
   const scope=new URL('./',location.href)
   const cache=await caches.open(cacheName)
   const results=await Promise.all(assets.map(x=>cache.match(new URL(x,scope).href)))
