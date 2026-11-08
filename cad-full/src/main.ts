@@ -27,7 +27,18 @@ async function initialize(){if(initialized)return
   initialized=true
 }
 fileInput.addEventListener('change',async()=>{if(loading)return;loading=true;resetFileState();const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';await AcApDocManager.instance.openDocument(file.name,bytes,{minimumChunkSize:1000});lastFileName=file.name;documentReady=true;exportButton.disabled=false;message('圖面已載入。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。')}finally{loading=false}})
-exportButton.addEventListener('click',()=>{if(!initialized||!documentReady||loading||exporting)return;exporting=true;exportButton.disabled=true;try{const choice=parseUnitChoice(unitChoice.value);AcApDocManager.instance.sendStringToExecute('cpdf');message(choice.warning+'。目前尚未將單位選項套用至 PDF 匯出比例；請在 PDF 匯出介面手動核對。已啟動 '+lastFileName+' 的 PDF 匯出指令。請在匯出介面完成設定；尚未確認 PDF 已產生或下載。')}catch(e){message('無法啟動 PDF 匯出：'+String(e))}finally{exporting=false;exportButton.disabled=!documentReady}})
+exportButton.addEventListener('click',async()=>{
+ if(!initialized||!documentReady||loading||exporting)return
+ exporting=true;exportButton.disabled=true
+ try{
+  const choice=parseUnitChoice(unitChoice.value)
+  // The upstream command may return before the user completes the PDF dialog.
+  // Await command dispatch errors, but never label dispatch as export success.
+  await Promise.resolve(AcApDocManager.instance.sendStringToExecute('cpdf'))
+  message(choice.warning+'。單位選項尚未套用至 PDF 比例；請在匯出介面手動核對。已送出 '+lastFileName+' 的 PDF 指令，但尚未取得輸出位元組、頁面尺寸或下載完成證據。請手動選取 PDF 檢查。')
+ }catch(e){message('PDF 匯出指令失敗：'+(e instanceof Error?e.message:String(e)))}
+ finally{exporting=false;exportButton.disabled=!documentReady||loading}
+})
 
 const offlineStatus=document.getElementById('offline-status') as HTMLElement
 function setOfflineStatus(s:string){offlineStatus.textContent='離線狀態：'+s}
