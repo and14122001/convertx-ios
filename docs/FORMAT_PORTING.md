@@ -325,3 +325,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 訊息區分「指令已送出」與「PDF 位元組、尺寸、下載已驗證」，後者仍未達成。若上游命令只排程而不等待匯出完成，鎖仍不能代表整個 PDF 對話框生命週期。
 - 新增 `tests/pdf-dispatch.test.mjs` 兩項靜態回歸案例；尚未在完整 checkout 執行，不宣稱通過。
 - 下一步驗證 1.7.8 PDF 外掛直接回傳位元組、頁面/比例輸出及實機真實 DWG。
+
+### 2026-11-09 同源離線攔截修正與上游 PDF API 查核
+- `cad-full/scripts/generate-offline-sw.mjs`：Service Worker fetch handler 同時要求 `new URL(request.url).origin === self.location.origin` 與 registration scope，避免跨來源字串前綴誤判；更新既有測試並新增跨來源案例。
+- 上游 `mlightcad/cad-viewer` PDF README 指出 `AcApPdfConvertor` 可程式化呼叫、向量 PDF 可包含 model/paper-space，但 README 主線不等於本專案固定 1.7.8 npm tarball API；本輪不盲目改用未核對型別的介面。1.8.0 起另拆 `cad-pdf-core`/`cad-pdf-exporter`，需避免將 1.8 API 誤套至 1.7.8。
+- 驗證：嘗試 `git ls-remote`，執行環境仍無法解析 github.com；未在 checkout 執行測試/tsc/Vite。新增測試為已提交、未通過驗證。
+- P0 仍阻塞：取得 1.7.8 可用 PDF bytes API、GPL 對應原始碼/NOTICE、真實 DWG 保真與 Safari 飛航模式。
