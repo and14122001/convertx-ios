@@ -136,3 +136,9 @@ test('distribution check rejects duplicate offline asset entries',()=>fixture(ro
  assert.notEqual(result.status,0)
  assert.match(result.stderr,/duplicate offline manifest entries/)
 }))
+
+test('service worker rejects cross-origin requests even if URL has matching text prefix',()=>fixture(root=>{
+ const sw=generate(root)
+ assert.match(sw,/origin!==self\.location\.origin/)
+ assert.match(sw,/event\.request\.url\.startsWith\(self\.registration\.scope\)/)
+}))
