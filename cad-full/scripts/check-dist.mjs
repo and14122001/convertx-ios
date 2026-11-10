@@ -19,6 +19,13 @@ else{
   console.log(pdfBundle?'PASS':'FAIL','PDF export command in bundled JavaScript')
   if(!pdfBundle)failed=true
 }
+// A GPL DWG parser is bundled; do not ship a Pages distribution without
+// the license and source-offer manifest. These checks do not constitute a
+// legal audit of the actual npm tarball or its transitive dependencies.
+for(const file of ['legal/GPL-3.0.txt','legal/DWG-SOURCE.md']){
+ const path=join(root,file)
+ if(!existsSync(path)||statSync(path).size===0){console.error('FAIL: missing DWG GPL distribution document',file);failed=true}
+}
 if(!existsSync(join(root,'offline-manifest.json'))){console.error('FAIL: offline-manifest.json missing');failed=true}
 if(existsSync(join(root,'sw.js'))){
   const sw=readFileSync(join(root,'sw.js'),'utf8')
