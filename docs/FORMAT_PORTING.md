@@ -331,3 +331,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 上游 `mlightcad/cad-viewer` PDF README 指出 `AcApPdfConvertor` 可程式化呼叫、向量 PDF 可包含 model/paper-space，但 README 主線不等於本專案固定 1.7.8 npm tarball API；本輪不盲目改用未核對型別的介面。1.8.0 起另拆 `cad-pdf-core`/`cad-pdf-exporter`，需避免將 1.8 API 誤套至 1.7.8。
 - 驗證：嘗試 `git ls-remote`，執行環境仍無法解析 github.com；未在 checkout 執行測試/tsc/Vite。新增測試為已提交、未通過驗證。
 - P0 仍阻塞：取得 1.7.8 可用 PDF bytes API、GPL 對應原始碼/NOTICE、真實 DWG 保真與 Safari 飛航模式。
+
+### 2026-11-10 GPL 發行阻擋閘門（未完成授權審核）
+- `cad-full/scripts/check-dist.mjs` 新增 `CAD_RELEASE=1` 發行模式：dist 必須有非空的 `legal/GPL-3.0.txt` 與 `legal/DWG-SOURCE.md`，否則檢查失敗。一般開發 smoke check 不受此閘門影響。
+- `cad-full/tests/license-release.test.mjs` 新增兩項案例，分別檢查發行缺件阻擋與開發模式不誤擋；尚未於完整 checkout 執行。
+- **重要：這兩份文件必須取自核對過的 LibreDWG 實際套件授權與對應原始碼，不得填入虛構文字來通過檢查。** 僅有檔案存在亦不等於 GPL 合規；還須人工查核 LICENSE/NOTICE、相依套件、修改內容及取得源碼方式。正式發行應執行 `CAD_RELEASE=1 npm run check:dist`。
+- 上游 PDF 文件提及程式化 `AcApPdfConvertor` 與向量 PDF；但固定版 1.7.8 的 API/建置與 Safari 實測仍未確認，不能宣稱已可控制紙張或取得 PDF bytes。
+- 尚未完成 Node 全套測試、Vite build、兩份真實 DWG、iPhone 飛航模式；P0 DWG→PDF 未驗收。
