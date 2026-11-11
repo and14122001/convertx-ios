@@ -346,3 +346,15 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `cad-full/tests/license-release.test.mjs` 更新舊錯誤訊息預期並新增佔位授權文字拒絕案例；尚未在完整 checkout 執行，不宣稱測試通過。
 - 固定版原始碼：https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts
 - 下一關鍵任務：確認 PDF renderer 固定版直接 API 與資料庫取得方式、完成真正向量 PDF bytes 匯出及紙張比例驗證；再做兩份 DWG 與 Safari 飛航模式。
+
+### 2026-11-11 DWG→PDF 核心批次（本機完整 checkout）
+- 重新查證 `main` HEAD 為 `df51d5ba9f5b45814eb30a9faa543d294a7399cc`，完整抓取 Git 歷史；讀取本文件及 `cad-full/` 程式、測試、建置設定與依賴。
+- 新增固定 `package-lock.json`；將 Vite 7.3.8、TypeScript 5.9.3、`@mlightcad/pdf-renderer` 1.7.8、`pdf-lib` 1.17.1 鎖定，保留 MLightCAD 1.7.8 / data-model 1.15.21 / LibreDWG converter 3.15.21。
+- 修正此前 `vite-plugin-static-copy` 將 Worker/WASM 錯複製至巢狀 `assets/node_modules/...` 的問題。改為 `scripts/copy-runtime-assets.mjs` 明確複製，Worker/WASM 發行路徑與 Worker 相對載入路徑一致。
+- 修正與 Service Worker 同源保護已改動相反的舊測試預期；更新 PDF 流程回歸測試。
+- `npm ci`、全套 Node 測試（40/40）、TypeScript 檢查及 Vite production build 通過；dist 靜態檢查通過，包含 mtext Worker、DWG Worker、WASM、PDF bundle、完整離線資產清單。未執行 GitHub Actions、Codespaces、Pages 部署。
+- PDF UI 改用固定 MLightCAD 1.7.8 `AcApPdfConvertor` 的 viewer-aware 向量流程（此流程內部呼叫 `exportDatabaseToPdf`，帶 glyph provider、字型映射與 fallback）。為取得上游 converter 私有 `downloadBytes()` 收到的實際 `Uint8Array`，目前在該 pinned instance 上以相容性 sink 暫時攔截；必須維持套件版本鎖定並做瀏覽器整合驗收。其後使用 pdf-lib 將頁面向量內容等比例置入 A4/A3、直向/橫向紙張，逐頁重讀 PDF 並核對頁數與 MediaBox。比例為範圍自動配適，**未提供也不宣稱 1:N 工程比例**；未確認單位仍會警示。此方案將所有 layout 頁面置入所選紙張，並非保留原始 layout 紙張尺寸。
+- 取得 LibreDWG 官方測試檔 `sample_2000.dwg`（22,027 bytes）與 `sample_2018.dwg`（19,848 bytes），SHA-256 分別為 `4b8d9b1396a6d0decaa328dfc7cf17a09f2afa716ff8f40e9ca62ad1f1504ffa`、`cbbac87415e5fc90ab8b0fad2df7cdbf6dda55907c7bf58694a7606d008ad4ef`。以固定 converter 主執行緒測試、資料庫計數並呼叫 PDF renderer：兩檔皆解析到 3 個 block records、2 layers、6 entities（Circle×1、Text×1、Polyline×1、Line×3），0 個 unresolved XREF；分別產生 1,582 / 1,584 bytes、3 頁 PDF，A4 portrait/landscape MediaBox 讀取通過。此為真實 DWG→PDF renderer smoke，未與 AutoCAD 或其他基準 PDF 做視覺逐圖比較；兩份樣本均未涵蓋 DIMENSION、HATCH、XREF、複雜 BLOCK、缺字型情境，不能據此聲稱這些物件保真。
+- 限制：這次獨立 Node `exportDatabaseToPdf` smoke 未接 viewer glyph provider；`pdftotext` 未讀出樣本的 TEXT，證明該直接 API 裸用會漏文字。正式 UI 目前用 `AcApPdfConvertor` viewer-aware 路徑以提供 glyph/font fallback，但尚未用瀏覽器樣本驗證該路徑實際顯示 TEXT/MTEXT；因此文字保真仍為未驗收。
+- GPL 核對：實際安裝的 `@mlightcad/libredwg-converter@3.15.21` 及其 `@mlightcad/libredwg-web@0.8.3` package metadata 均標示 GPL-3.0，套件含 LICENSE；本次 Worker/WASM 發行資產已納入離線 dist。**尚未完成 0.8.3 WASM 完整對應原始碼、建置腳本、修改告知與可取得方式的逐檔核對，也未將已核實 GPL 文本及完整 Corresponding Source offer 納入 Pages dist；`CAD_RELEASE=1` 發行檢查仍應失敗，不得部署。**
+- 尚未完成：在實際瀏覽器載入兩份 DWG 並驗證本 UI 的攔截/下載與向量頁面尺寸；使用具 DIMENSION/HATCH/XREF/多層/字型案例的兩份複雜圖面進行視覺比較；iPhone Safari/PWA 飛航模式、PDF 下載與開啟。執行環境中的 Chromium headless 無法建立 process-singleton socket，Cloud browser 亦無法連至本機 loopback；因此沒有聲稱瀏覽器或真機驗收成功。

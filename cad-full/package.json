@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "npm run test && tsc --noEmit && vite build && npm run offline:generate && npm run check:dist",
+    "build": "npm run test && tsc --noEmit && vite build && node scripts/copy-runtime-assets.mjs && npm run offline:generate && npm run check:dist",
     "preview": "vite preview",
     "check": "tsc --noEmit",
     "test": "node scripts/run-tests.mjs",
@@ -19,12 +19,13 @@
     "@mlightcad/cad-simple-viewer": "1.7.8",
     "@mlightcad/data-model": "1.15.21",
     "@mlightcad/libredwg-converter": "3.15.21",
-    "@mlightcad/cad-pdf-plugin": "1.7.8"
+    "@mlightcad/cad-pdf-plugin": "1.7.8",
+    "@mlightcad/pdf-renderer": "1.7.8",
+    "pdf-lib": "1.17.1"
   },
   "devDependencies": {
-    "vite": "^7.0.0",
-    "vite-plugin-static-copy": "^4.0.0",
-    "typescript": "^5.9.0"
+    "vite": "7.3.8",
+    "typescript": "5.9.3"
   },
   "overrides": {
     "lodash-es": "4.18.1"

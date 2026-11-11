@@ -46,7 +46,7 @@ test('service worker must not match unrelated caches',()=>fixture(root=>{
 test('service worker only intercepts requests inside its registration scope',()=>fixture(root=>{
  const sw=generate(root)
  assert.match(sw,/event\.request\.url\.startsWith\(self\.registration\.scope\)/)
- assert.doesNotMatch(sw,/new URL\(event\.request\.url\)\.origin/)
+ assert.match(sw,/new URL\(event\.request\.url\)\.origin!==self\.location\.origin/)
 }))
 
 test('failed installation cleans incomplete cache',()=>fixture(root=>{const sw=generate(root);assert.match(sw,/catch\(err\)\{await caches\.delete\(CACHE\);throw err\}/)}))

@@ -4,7 +4,8 @@ import { validateCadFile } from './file-validation'
 import { AcApDocManager } from '@mlightcad/cad-simple-viewer'
 import { AcDbDatabaseConverterManager, AcDbFileType } from '@mlightcad/data-model'
 import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter'
-import { registerLazyPdfPlugin } from '@mlightcad/cad-pdf-plugin/register'
+import { AcApPdfConvertor, type AcApPdfExportOptions } from '@mlightcad/cad-pdf-plugin'
+import { PDFDocument } from 'pdf-lib'
 const status=document.getElementById('status') as HTMLElement
 const fileInput=document.getElementById('file') as HTMLInputElement
 const exportButton=document.getElementById('export') as HTMLButtonElement
@@ -16,6 +17,8 @@ let exporting=false
 let lastFileName=''
 let lastPreflight=''
 const unitChoice=document.getElementById('unit-choice') as HTMLSelectElement
+const paperChoice=document.getElementById('paper-choice') as HTMLSelectElement
+const orientationChoice=document.getElementById('orientation-choice') as HTMLSelectElement
 function resetFileState(){documentReady=false;lastPreflight='';exportButton.disabled=true}
 function message(s:string){status.textContent=s}
 async function initialize(){if(initialized)return
@@ -23,7 +26,6 @@ async function initialize(){if(initialized)return
   const ready=await AcApDocManager.checkWebworkerReadiness(workerUrls)
   if(!ready)throw new Error('DWG/文字 Worker 資產未就緒，請確認 WASM 與 Worker 已部署')
   AcApDocManager.createInstance({container:document.getElementById('canvas')!,busyIndicatorHost:document.getElementById('viewer')!,autoResize:true,webworkerFileUrls:workerUrls})
-  registerLazyPdfPlugin(AcApDocManager.instance.pluginManager)
   initialized=true
 }
 fileInput.addEventListener('change',async()=>{if(loading)return;loading=true;resetFileState();const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';await AcApDocManager.instance.openDocument(file.name,bytes,{minimumChunkSize:1000});lastFileName=file.name;documentReady=true;exportButton.disabled=false;message('圖面已載入。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。')}finally{loading=false}})
@@ -32,11 +34,57 @@ exportButton.addEventListener('click',async()=>{
  exporting=true;exportButton.disabled=true
  try{
   const choice=parseUnitChoice(unitChoice.value)
-  // The upstream command may return before the user completes the PDF dialog.
-  // Await command dispatch errors, but never label dispatch as export success.
-  await Promise.resolve(AcApDocManager.instance.sendStringToExecute('cpdf'))
-  message(choice.warning+'。單位選項尚未套用至 PDF 比例；請在匯出介面手動核對。已送出 '+lastFileName+' 的 PDF 指令，但尚未取得輸出位元組、頁面尺寸或下載完成證據。請手動選取 PDF 檢查。')
- }catch(e){message('PDF 匯出指令失敗：'+(e instanceof Error?e.message:String(e)))}
+  const [widthMm,heightMm]=paperChoice.value.split('x').map(Number)
+  if(!Number.isFinite(widthMm)||!Number.isFinite(heightMm)||widthMm<=0||heightMm<=0)throw new Error('紙張尺寸設定無效')
+  const landscape=orientationChoice.value==='landscape'
+  const paper={widthMm:landscape?Math.max(widthMm,heightMm):Math.min(widthMm,heightMm),heightMm:landscape?Math.min(widthMm,heightMm):Math.max(widthMm,heightMm)}
+  const context=AcApDocManager.instance.context
+  if(!context?.doc?.database)throw new Error('目前沒有可匯出的 CAD 資料庫')
+  message('正在產生向量 PDF 位元組…')
+  // MLightCAD 1.7.8's public convert() calls exportDatabaseToPdf() with its
+  // viewer glyph provider, font mapping and text fallback, then downloads
+  // internally. Capture that exact Uint8Array at its pinned internal sink.
+  const pdfConvertor=new AcApPdfConvertor()
+  let rendererBytes:Uint8Array|undefined
+  const pinnedSink=pdfConvertor as unknown as {downloadBytes:(bytes:Uint8Array,name:string)=>void}
+  pinnedSink.downloadBytes=(bytes)=>{rendererBytes=new Uint8Array(bytes)}
+  const exportOptions:AcApPdfExportOptions={modelSpaceFit:'extents',exportLayouts:true,textMode:'text'}
+  await pdfConvertor.convert(context,exportOptions)
+  if(!rendererBytes?.byteLength)throw new Error('MLightCAD 未回傳 PDF 位元組')
+  // Keep the vector page content while normalizing every page to the requested
+  // sheet size. This is an automatic fit, not a declared engineering scale.
+  const sourcePdf=await PDFDocument.load(rendererBytes)
+  const outputPdf=await PDFDocument.create()
+  const embeddedPages=await outputPdf.embedPdf(rendererBytes)
+  const marginPt=10*72/25.4
+  for(const [index,sourcePage] of sourcePdf.getPages().entries()){
+   const page=outputPdf.addPage([paper.widthMm*72/25.4,paper.heightMm*72/25.4])
+   const embedded=embeddedPages[index]
+   if(!embedded)throw new Error('PDF 頁面嵌入失敗：'+(index+1))
+   const scale=Math.min((page.getWidth()-marginPt*2)/sourcePage.getWidth(),(page.getHeight()-marginPt*2)/sourcePage.getHeight())
+   const width=sourcePage.getWidth()*scale,height=sourcePage.getHeight()*scale
+   page.drawPage(embedded,{x:(page.getWidth()-width)/2,y:(page.getHeight()-height)/2,width,height})
+  }
+  const bytes=await outputPdf.save()
+  const checkedPdf=await PDFDocument.load(bytes)
+  if(checkedPdf.getPageCount()!==sourcePdf.getPageCount())throw new Error('輸出 PDF 頁數與 MLightCAD 渲染頁數不一致')
+  for(const page of checkedPdf.getPages()){
+   const epsilon=0.1
+   if(Math.abs(page.getWidth()-paper.widthMm*72/25.4)>epsilon||Math.abs(page.getHeight()-paper.heightMm*72/25.4)>epsilon)throw new Error('輸出 PDF 頁面尺寸與設定不一致')
+  }
+  const audit=inspectPdfBytes(bytes)
+  const pdfBuffer=new ArrayBuffer(bytes.byteLength)
+  new Uint8Array(pdfBuffer).set(bytes)
+  const blob=new Blob([pdfBuffer],{type:'application/pdf'})
+  const url=URL.createObjectURL(blob)
+  const link=document.createElement('a')
+  link.href=url
+  link.download=(lastFileName.replace(/\.(dwg|dxf)$/i,'')||'drawing')+'.pdf'
+  link.rel='noopener'
+  document.body.appendChild(link);link.click();link.remove()
+  window.setTimeout(()=>URL.revokeObjectURL(url),60000)
+  message('已產生並送出 PDF 下載：'+audit.byteLength+' bytes，PDF '+audit.version+'、'+checkedPdf.getPageCount()+' 頁；MediaBox 已核對為 '+paper.widthMm+'×'+paper.heightMm+' mm、'+(landscape?'橫向':'直向')+'。圖面範圍自動配適，非 1:N 工程比例；紙張空間頁面亦按所選紙張等比例置入。'+choice.warning+' 請檢查字型 fallback、XREF、DIMENSION、HATCH、BLOCK/INSERT 與圖元差異；目前不宣稱保真驗收通過。')
+ }catch(e){message('PDF 匯出失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{exporting=false;exportButton.disabled=!documentReady||loading}
 })
 
