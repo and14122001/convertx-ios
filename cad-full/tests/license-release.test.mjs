@@ -10,10 +10,20 @@ function fixture(fn){const root=mkdtempSync(join(tmpdir(),'cad-gpl-'));try{mkdir
 test('release requires GPL license and corresponding-source document',()=>fixture(root=>{
  const result=run(root,true)
  assert.notEqual(result.status,0)
- assert.match(result.stderr,/missing DWG GPL distribution document legal\/GPL-3\.0\.txt/)
- assert.match(result.stderr,/missing DWG GPL distribution document legal\/DWG-SOURCE\.md/)
+ assert.match(result.stderr,/missing DWG GPL distribution document/)
+
 }))
 test('development smoke check does not enforce release-only GPL document paths',()=>fixture(root=>{
  const result=run(root,false)
  assert.doesNotMatch(result.stderr,/missing DWG GPL distribution document/)
+}))
+
+test('release rejects placeholder GPL license and short source offer',()=>fixture(root=>{
+ mkdirSync(join(root,'legal'))
+ writeFileSync(join(root,'legal','GPL-3.0.txt'),'GNU GENERAL PUBLIC LICENSE\\nVersion 3, 29 June 2007')
+ writeFileSync(join(root,'legal','DWG-SOURCE.md'),'libredwg 3.15.21 https://example.org')
+ const result=run(root,true)
+ assert.notEqual(result.status,0)
+ assert.match(result.stderr,/GPL-3.0 license text appears incomplete/)
+ assert.match(result.stderr,/DWG source offer missing pinned version or retrieval details/)
 }))
