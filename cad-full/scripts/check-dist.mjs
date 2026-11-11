@@ -33,7 +33,7 @@ if(process.env.CAD_RELEASE==='1'){
   if(!/GNU GENERAL PUBLIC LICENSE/i.test(license)||!/Version 3, 29 June 2007/i.test(license)||license.length<20000){
    console.error('FAIL: GPL-3.0 license text appears incomplete');failed=true
   }
-  if(!/https:\/\//i.test(source)||!/libredwg/i.test(source)||!/3\\.15\\.21/.test(source)||source.length<200){
+  if(!/https:\/\//i.test(source)||!/libredwg/i.test(source)||!/3\.15\.21/.test(source)||source.length<200){
    console.error('FAIL: DWG source offer missing pinned version or retrieval details');failed=true
   }
  }
