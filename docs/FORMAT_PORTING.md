@@ -338,3 +338,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - **重要：這兩份文件必須取自核對過的 LibreDWG 實際套件授權與對應原始碼，不得填入虛構文字來通過檢查。** 僅有檔案存在亦不等於 GPL 合規；還須人工查核 LICENSE/NOTICE、相依套件、修改內容及取得源碼方式。正式發行應執行 `CAD_RELEASE=1 npm run check:dist`。
 - 上游 PDF 文件提及程式化 `AcApPdfConvertor` 與向量 PDF；但固定版 1.7.8 的 API/建置與 Safari 實測仍未確認，不能宣稱已可控制紙張或取得 PDF bytes。
 - 尚未完成 Node 全套測試、Vite build、兩份真實 DWG、iPhone 飛航模式；P0 DWG→PDF 未驗收。
+
+### 2026-11-11 固定版本 PDF 實作查證與 GPL 發行閘門加固
+- 直接讀取 `mlightcad/cad-viewer` GitHub tag `v1.7.8` 的 `packages/cad-pdf-plugin/src/AcApPdfConvertor.ts`，確認此版本 `AcApPdfConvertor.convert(context, options)` 透過 `@mlightcad/pdf-renderer` 的 `exportDatabaseToPdf(db, pdfOptions)` 取得 Uint8Array，隨後在內部觸發 Blob 下載；其 `convert()` **不回傳 PDF bytes**。若要讓 ConvertX 驗證實際 bytes，需另走 `exportDatabaseToPdf` 並取得有效 `AcDbDatabase`、PDF options 與字型解析依賴，不能把 `convert()` 的 Promise 當作 PDF 位元組。
+- 上游 v1.7.8 的 `modelSpaceFit` 為 extents/display，`exportLayouts` 控制模型/圖紙空間；此版本的程式並未直接證明 A4/A3 或 1:N 比例已可指定。保留 UI 的比例未驗證警示。
+- `cad-full/scripts/check-dist.mjs` 在 `CAD_RELEASE=1` 時不只檢查 GPL 檔案存在，另檢查 GPLv3 標頭、合理最小文字長度及 LibreDWG 3.15.21 對應源碼說明的基本內容；仍需人工審核實際套件與再散布義務。
+- `cad-full/tests/license-release.test.mjs` 更新舊錯誤訊息預期並新增佔位授權文字拒絕案例；尚未在完整 checkout 執行，不宣稱測試通過。
+- 固定版原始碼：https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts
+- 下一關鍵任務：確認 PDF renderer 固定版直接 API 與資料庫取得方式、完成真正向量 PDF bytes 匯出及紙張比例驗證；再做兩份 DWG 與 Safari 飛航模式。
