@@ -22,9 +22,21 @@ else{
 // A GPL DWG parser is bundled; do not ship a Pages distribution without
 // the license and source-offer manifest. These checks do not constitute a
 // legal audit of the actual npm tarball or its transitive dependencies.
-if(process.env.CAD_RELEASE==='1')for(const file of ['legal/GPL-3.0.txt','legal/DWG-SOURCE.md']){
- const path=join(root,file)
- if(!existsSync(path)||statSync(path).size===0){console.error('FAIL: missing DWG GPL distribution document',file);failed=true}
+if(process.env.CAD_RELEASE==='1'){
+ const licensePath=join(root,'legal/GPL-3.0.txt')
+ const sourcePath=join(root,'legal/DWG-SOURCE.md')
+ if(!existsSync(licensePath)||!existsSync(sourcePath)){
+  console.error('FAIL: missing DWG GPL distribution document');failed=true
+ }else{
+  const license=readFileSync(licensePath,'utf8')
+  const source=readFileSync(sourcePath,'utf8')
+  if(!/GNU GENERAL PUBLIC LICENSE/i.test(license)||!/Version 3, 29 June 2007/i.test(license)||license.length<20000){
+   console.error('FAIL: GPL-3.0 license text appears incomplete');failed=true
+  }
+  if(!/https:\/\//i.test(source)||!/libredwg/i.test(source)||!/3\\.15\\.21/.test(source)||source.length<200){
+   console.error('FAIL: DWG source offer missing pinned version or retrieval details');failed=true
+  }
+ }
 }
 if(!existsSync(join(root,'offline-manifest.json'))){console.error('FAIL: offline-manifest.json missing');failed=true}
 if(existsSync(join(root,'sw.js'))){
