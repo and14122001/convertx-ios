@@ -386,3 +386,7 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - UI 增加依範圍配紙及 1:1 至 1:1000 比例選項。新測試覆蓋單位碼映射、1:50 預期尺度、置中、超出紙張拒絕與未知單位拒絕。
 - 驗證：`npm test` 九個測試檔通過；TypeScript 通過；Vite build 通過；離線清單 7 檔、21,381,944 bytes；`check:dist` 通過。Vite 有大 bundle 非阻擋警告。測試的比例為數學 fit-box 測試，尚未用真 DWG 及 PDF 讀取器核對列印實際尺寸。
 - 仍未完成：真實 DWG 重新輸出各比例 PDF、PDF 列印尺規獨立核對、兩份 DWG 文字/尺寸/HATCH/BLOCK 視覺比對、GPL 對應源碼與完整 notices、Pages 部署、Safari/PWA 飛航模式下載驗收。LibreDWG 上游也明列其仍有缺少支援/測試覆蓋的 DWG entity 類型，因此 parser 不標記 unknown 不能替代逐圖元驗證。來源：https://github.com/LibreDWG/libredwg 及 https://www.gnu.org/software/libredwg/manual/LibreDWG.html
+
+### 2026-11-12 iPhone 測試頁窄螢幕版面修正
+- 依使用者 iPhone Safari 截圖調整 `cad-full/index.html`：表單改窄螢幕雙欄／超窄單欄、檔案與 PDF 按鈕全寬、加入瀏海安全邊距、限制水平溢出；保真限制改可收合，預覽高度改用動態視窗比例。
+- TypeScript、Vite build、離線 manifest 與 `check:dist` 通過；Vite 仍有大型 chunk 警告。尚未在使用者 iPhone 更新頁面後複驗顯示；DWG/PDF 與離線驗收狀態不變。
