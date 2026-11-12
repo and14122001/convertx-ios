@@ -369,3 +369,13 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 驗證結果：`npm test` 46 項通過；`tsc --noEmit` 通過；`vite build` 通過；`check:dist` 通過。另以 `npm ci` 重現安裝成功。靜態離線包 6 個檔案，約 21.4 MB；其中應用 JS 約 5.5 MB、懶載 PDF plugin 約 3.4 MB、WASM 約 10.9 MB，需在 iPhone 實機評估首次離線快取時間與記憶體。Vite 對大 chunk 發出非阻擋警告。
 - GPL 查核：實際安裝的 `@mlightcad/libredwg-converter@3.15.21` 與其 `@mlightcad/libredwg-web@0.8.3` 均標示 GPL-3.0；已確認 converter tarball 含完整 GPLv3 LICENSE，libredwg-web 來源對應 tag `v0.8.3` 指向 commit `b5177613f2c735858a6d1cb1d1c7e238c397b88f`。仍未確認 converter 3.15.21 的完整對應源碼提交、所有 transitive notices 和 GPL 發行方案；release gate 未通過，沒有部署。
 - 尚未完成：至少兩份真實 DWG（目前無測試圖檔）、圖層/模型空間/BLOCK/INSERT/TEXT/MTEXT/DIMENSION/HATCH/XREF/字型逐類比對、1:N 工程比例（目前只有範圍符合紙張）、PDF 閱讀器完整解析與列印比例核對、GitHub Pages 發布、iPhone Safari/PWA 飛航模式下載驗收。不能宣稱 P0 完成。
+
+### 2026-11-12 本機真實 DWG 樣本解析批次（未完成視覺保真比對）
+- 從 MLightCAD 公開 `cad-data` commit `6c546f569cca6ff0b8b3f6fc8aa22dada90e7779` 取得 `baseline-sample.dwg`、`canteen.dwg`，只放在本機 `/tmp` 測試；未將 DWG 或 PDF 樣本加入 GitHub 專案。SHA-256：baseline `4a8e5195e600ac8f6b4e37869cac812fe54c5359b4b97ca19e27ad57422ddc64`；canteen `818f54cd3b413ce3ab00a6aa849bc29cd8cc8581a39fc31a723691f40141fdbc`。
+- 新增 `cad-full/scripts/verify-real-dwg.mjs` 與 `npm run verify:dwg -- <本機 DWG...>`。它用固定版 LibreDWG WASM 解析本機樣本，再讓固定版 MLightCAD converter 執行資料庫實體化，最後輸出 A4 向量 PDF 並列出來源圖元類型、圖層/區塊數、轉換錯誤與 PDF 位元組。此 Node harness 注入已由 WASM 解析的模型，**不會執行瀏覽器 GPL Worker**，不等同 Safari Worker 實測；輸入只留在本機，輸出預設寫入忽略目錄 `.local-dwg-validation/`。
+- `baseline-sample.dwg`（81,659 B，AC1032，來源 INSUNITS=4，21 圖層、12 區塊）：解析 170 個跨圖紙空間的實體、0 個 LibreDWG unknown entity；模型空間轉換 165 個；輸出 PDF 約 18.7 kB。`pdfinfo` 確認 1 頁、A4、未加密。含 TEXT、MTEXT、INSERT、HATCH、LINE、ARC、CIRCLE 等。
+- `canteen.dwg`（2,618,816 B，AC1021，來源 INSUNITS=4，14 圖層、110 區塊）：解析 25,125 個實體、0 個 LibreDWG unknown entity；型別包含 DIMENSION 28、INSERT 690、HATCH 274、LINE 22,835、MTEXT 188、TEXT 106、3DSOLID 1、VIEWPORT 2。模型空間轉換 25,122 個實體、conversionErrors 為空；輸出 PDF 約 788 kB。`pdfinfo` 確認 1 頁、A4、未加密。
+- 新增 UI 預檢摘要：顯示實際模型空間圖元數、型別計數、圖層數與可識別 XREF 區塊；加入固定保真警示，明確指出字型/SHX 提供器未設定、XREF 未載入/核對、不支援與代理物件可能缺漏。單位選擇也明確顯示尚未套用至 PDF 比例。
+- 用 LibreDWG 內嵌的低解析 DWG 縮圖和輸出 PDF 做了第一次視覺對照：整體多區塊排布相似，但 PDF 的測試 harness 沒有字型／glyph provider，文字標註消失。固定版 `cad-pdf-plugin` v1.7.8 有 viewer glyph provider 與字型解析器；已接入應用匯出路徑，設為字型目錄解析、SHX 向量回退，並加 1 項接線回歸測試。此為代碼接線，**接線後尚未重新在瀏覽器用這兩份真 DWG 產生 PDF 做視覺驗收**；SHX 或缺失字型仍可能缺字。
+- 新增 3 項警示回歸測試與 1 項 glyph/font 接線測試；本批完整 `npm test` 為 50 項全過；TypeScript、Vite 與離線資產檢查通過。**目前仍未用獨立 CAD 應用逐圖元視覺比對 PDF**；LibreDWG `unknownEntityCount=0` 僅表示 parser 沒有標成未知類型，不證明 renderer 支援全部實體。Text/SHX、OLE2FRAME、MULTILEADER、WIPEOUT、3DSOLID、XREF、代理物件仍要逐項核對。
+- 未完成：A4/A3 的每一種方向 PDF bytes MediaBox 雖有合成線條測試，但真 DWG 只測 A4 直向；1:N 工程比例、單位套用、逐圖元視覺比對、Safari Worker、iPhone 真機離線下載、GPL 對應源碼與發行義務仍未驗收。

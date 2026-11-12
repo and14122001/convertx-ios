@@ -1,7 +1,7 @@
 import {inspectPdfBytes} from './pdf-audit.mjs'
 import {inspectDwgHeader,parseUnitChoice} from './dwg-preflight.mjs'
 import { validateCadFile } from './file-validation'
-import { AcApDocManager } from '@mlightcad/cad-simple-viewer'
+import { AcApDocManager, AcApSettingManager } from '@mlightcad/cad-simple-viewer'
 import { AcDbDatabaseConverterManager, AcDbFileType } from '@mlightcad/data-model'
 import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter'
 import { registerLazyPdfPlugin } from '@mlightcad/cad-pdf-plugin/register'
@@ -21,6 +21,19 @@ let lastPreflight=''
 const unitChoice=document.getElementById('unit-choice') as HTMLSelectElement
 function resetFileState(){documentReady=false;lastPreflight='';exportButton.disabled=true}
 function message(s:string){status.textContent=s}
+function summarizeDrawing(){
+ const db=AcApDocManager.instance.context.doc.database
+ const layers=[...db.tables.layerTable.newIterator()]
+ const modelSpace=[...db.tables.blockTable.modelSpace.newIterator()]
+ const blocks=[...db.tables.blockTable.newIterator()]
+ const xrefs=blocks.filter(block=>block.isXref).map(block=>block.pathName||block.name)
+ const types=modelSpace.reduce((counts,entity)=>{
+  const type=entity.dxfTypeName||entity.type||'UNKNOWN'
+  counts[type]=(counts[type]||0)+1
+  return counts
+ },{} as Record<string,number>)
+ return `圖層 ${layers.length}；模型空間圖元 ${modelSpace.length}；型別 ${Object.entries(types).map(([type,count])=>`${type}:${count}`).join(', ')||'無'}；XREF ${xrefs.length?xrefs.join(', '):'未核對'}。`
+}
 async function initialize(){if(initialized)return
   AcDbDatabaseConverterManager.instance.register(AcDbFileType.DWG,new AcDbLibreDwgConverter({convertByEntityType:false,useWorker:true,parserWorkerUrl:workerUrls.dwgParser}))
   const ready=await AcApDocManager.checkWebworkerReadiness(workerUrls)
@@ -29,7 +42,7 @@ async function initialize(){if(initialized)return
   registerLazyPdfPlugin(AcApDocManager.instance.pluginManager)
   initialized=true
 }
-fileInput.addEventListener('change',async()=>{if(loading)return;loading=true;resetFileState();const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';await AcApDocManager.instance.openDocument(file.name,bytes,{minimumChunkSize:1000});lastFileName=file.name;documentReady=true;exportButton.disabled=false;message('圖面已載入。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。')}finally{loading=false}})
+fileInput.addEventListener('change',async()=>{if(loading)return;loading=true;resetFileState();const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';await AcApDocManager.instance.openDocument(file.name,bytes,{minimumChunkSize:1000});lastFileName=file.name;documentReady=true;exportButton.disabled=false;message('圖面已載入。'+lastPreflight+'。'+summarizeDrawing()+'文字/字型、XREF 與不支援／代理物件尚未完成保真核對；請人工比對原圖。')}catch(e){resetFileState();message('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。')}finally{loading=false}})
 exportButton.addEventListener('click',async()=>{
  if(!initialized||!documentReady||loading||exporting)return
  exporting=true;exportButton.disabled=true
@@ -39,6 +52,10 @@ exportButton.addEventListener('click',async()=>{
   if(orientation.value==='landscape') [paperDimensions.widthMm,paperDimensions.heightMm]=[paperDimensions.heightMm,paperDimensions.widthMm]
   else if(orientation.value!=='portrait') throw new Error('無效的紙張方向')
   const db=AcApDocManager.instance.context.doc.database
+  const [{createViewerPdfGlyphProvider},{resolveViewerTextFont}]=await Promise.all([
+   import('../node_modules/@mlightcad/cad-pdf-plugin/lib/AcApPdfGlyphProvider.js'),
+   import('@mlightcad/cad-pdf-plugin')
+  ])
   // Fixed v1.7.8 PDF renderer: export model space using native vectors.
   // Do not infer INSUNITS, paper scale, external references or font availability.
   const bytes=await exportDatabaseToPdf(db,{
@@ -48,6 +65,10 @@ exportButton.addEventListener('click',async()=>{
    ltscale:db.ltscale,
    celtscale:db.celtscale,
    showLineWeight:!!db.lwdisplay,
+   fontMapping:AcApSettingManager.instance.fontMapping,
+   glyphProvider:createViewerPdfGlyphProvider(),
+   textMode:'text',
+   textFontResolver:resolveViewerTextFont,
    background:'none',
    fit:'extents',
    layouts:'current'
@@ -61,7 +82,7 @@ exportButton.addEventListener('click',async()=>{
    link.href=url;link.download=filename;link.rel='noopener'
    document.body.appendChild(link);link.click();link.remove()
   }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
-  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'），頁面設定 '+paperSize.value+' '+(orientation.value==='landscape'?'橫向':'直向')+'；已要求瀏覽器下載 '+filename+'。'+choice.warning+'；圖面自動符合頁面，未實作 1:N 工程比例，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
+  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'），頁面設定 '+paperSize.value+' '+(orientation.value==='landscape'?'橫向':'直向')+'；已要求瀏覽器下載 '+filename+'。'+choice.warning+'；單位選擇尚未套用至 PDF 比例；圖面自動符合頁面，未實作 1:N 工程比例，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
  }catch(e){message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{exporting=false;exportButton.disabled=!documentReady||loading}
 })
