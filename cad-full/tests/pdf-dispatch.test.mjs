@@ -20,3 +20,9 @@ test('PDF export does not silently assert fidelity or paper scale',()=>{
 test('PDF renderer is pinned to viewer release',()=>{
  assert.equal(pkg.dependencies['@mlightcad/pdf-renderer'],pkg.dependencies['@mlightcad/cad-simple-viewer'])
 })
+
+test('PDF filename strips only final CAD extension',()=>{
+ assert.match(source,/lastFileName\.replace\(\/\\\.\(dwg\|dxf\)\$\/i,''\)/)
+ assert.equal('drawing.DWG'.replace(/\.(dwg|dxf)$/i,'')+'.pdf','drawing.pdf')
+ assert.equal('plan.v2.dwg'.replace(/\.(dwg|dxf)$/i,'')+'.pdf','plan.v2.pdf')
+})
