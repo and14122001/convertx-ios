@@ -46,7 +46,7 @@ exportButton.addEventListener('click',async()=>{
    layouts:'current'
   })
   const audit=inspectPdfBytes(bytes)
-  const filename=lastFileName.replace(/\\.(dwg|dxf)$/i,'')+'.pdf'
+  const filename=lastFileName.replace(/\.(dwg|dxf)$/i,'')+'.pdf'
   const blob=new Blob([new Uint8Array(bytes)],{type:'application/pdf'})
   const url=URL.createObjectURL(blob)
   try{
