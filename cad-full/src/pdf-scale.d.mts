@@ -1,0 +1,2 @@
+export function unitCodeForChoice(unit: string): number
+export function makeScaleFitBox(extents: { min: { x: number; y: number }; max: { x: number; y: number } } | undefined, options: { unit: string; denominator: number; widthMm: number; heightMm: number; marginMm?: number }): { unitCode: number; fitBox: { min: { x: number; y: number }; max: { x: number; y: number } }; pointsPerDrawingUnit: number; availableWidth: number; availableHeight: number }

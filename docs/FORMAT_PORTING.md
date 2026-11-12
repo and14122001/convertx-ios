@@ -379,3 +379,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 用 LibreDWG 內嵌的低解析 DWG 縮圖和輸出 PDF 做了第一次視覺對照：整體多區塊排布相似，但 PDF 的測試 harness 沒有字型／glyph provider，文字標註消失。固定版 `cad-pdf-plugin` v1.7.8 有 viewer glyph provider 與字型解析器；已接入應用匯出路徑，設為字型目錄解析、SHX 向量回退，並加 1 項接線回歸測試。此為代碼接線，**接線後尚未重新在瀏覽器用這兩份真 DWG 產生 PDF 做視覺驗收**；SHX 或缺失字型仍可能缺字。
 - 新增 3 項警示回歸測試與 1 項 glyph/font 接線測試；本批完整 `npm test` 為 50 項全過；TypeScript、Vite 與離線資產檢查通過。**目前仍未用獨立 CAD 應用逐圖元視覺比對 PDF**；LibreDWG `unknownEntityCount=0` 僅表示 parser 沒有標成未知類型，不證明 renderer 支援全部實體。Text/SHX、OLE2FRAME、MULTILEADER、WIPEOUT、3DSOLID、XREF、代理物件仍要逐項核對。
 - 未完成：A4/A3 的每一種方向 PDF bytes MediaBox 雖有合成線條測試，但真 DWG 只測 A4 直向；1:N 工程比例、單位套用、逐圖元視覺比對、Safari Worker、iPhone 真機離線下載、GPL 對應源碼與發行義務仍未驗收。
+
+### 2026-11-12 明確單位與 1:N PDF 比例控制（待真圖與真機核驗）
+- `cad-full/src/pdf-scale.mjs` 新增 1:N fit-box 計算：只有人工選定毫米/公分/公尺/英吋/英尺後才啟用；依 A4/A3、方向、10 mm 邊界與 renderer 的 2% 內距，計算置中的模型空間 fit box。若模型範圍放不進選定紙張則拒絕匯出，不自動縮小比例或裁切。
+- `main.ts` 匯出時只在建立 renderer 的同步階段暫時套用人工選定的 INSUNITS，立即還原原資料庫欄位；1:N 模式傳入 fitBox，依圖面配紙模式仍不聲稱工程比例。單位未知且選 1:N 時明確失敗。
+- UI 增加依範圍配紙及 1:1 至 1:1000 比例選項。新測試覆蓋單位碼映射、1:50 預期尺度、置中、超出紙張拒絕與未知單位拒絕。
+- 驗證：`npm test` 九個測試檔通過；TypeScript 通過；Vite build 通過；離線清單 7 檔、21,381,944 bytes；`check:dist` 通過。Vite 有大 bundle 非阻擋警告。測試的比例為數學 fit-box 測試，尚未用真 DWG 及 PDF 讀取器核對列印實際尺寸。
+- 仍未完成：真實 DWG 重新輸出各比例 PDF、PDF 列印尺規獨立核對、兩份 DWG 文字/尺寸/HATCH/BLOCK 視覺比對、GPL 對應源碼與完整 notices、Pages 部署、Safari/PWA 飛航模式下載驗收。LibreDWG 上游也明列其仍有缺少支援/測試覆蓋的 DWG entity 類型，因此 parser 不標記 unknown 不能替代逐圖元驗證。來源：https://github.com/LibreDWG/libredwg 及 https://www.gnu.org/software/libredwg/manual/LibreDWG.html

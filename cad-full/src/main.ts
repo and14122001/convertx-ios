@@ -1,5 +1,6 @@
 import {inspectPdfBytes} from './pdf-audit.mjs'
 import {inspectDwgHeader,parseUnitChoice} from './dwg-preflight.mjs'
+import {makeScaleFitBox} from './pdf-scale.mjs'
 import { validateCadFile } from './file-validation'
 import { AcApDocManager, AcApSettingManager } from '@mlightcad/cad-simple-viewer'
 import { AcDbDatabaseConverterManager, AcDbFileType } from '@mlightcad/data-model'
@@ -11,6 +12,7 @@ const fileInput=document.getElementById('file') as HTMLInputElement
 const exportButton=document.getElementById('export') as HTMLButtonElement
 const paperSize=document.getElementById('paper-size') as HTMLSelectElement
 const orientation=document.getElementById('orientation') as HTMLSelectElement
+const scaleDenominator=document.getElementById('scale-denominator') as HTMLSelectElement
 const workerUrls={mtextRender:'./assets/mtext-renderer-worker.js',dwgParser:'./assets/libredwg-parser-worker.js'}
 let initialized=false
 let loading=false
@@ -52,13 +54,22 @@ exportButton.addEventListener('click',async()=>{
   if(orientation.value==='landscape') [paperDimensions.widthMm,paperDimensions.heightMm]=[paperDimensions.heightMm,paperDimensions.widthMm]
   else if(orientation.value!=='portrait') throw new Error('無效的紙張方向')
   const db=AcApDocManager.instance.context.doc.database
+  let scaleFitBox:ReturnType<typeof makeScaleFitBox>|undefined
+  if(scaleDenominator.value!=='fit'){
+   const denominator=Number(scaleDenominator.value)
+   scaleFitBox=makeScaleFitBox(db.extents,{unit:choice.unit??'',denominator,...paperDimensions})
+  }
   const [{createViewerPdfGlyphProvider},{resolveViewerTextFont}]=await Promise.all([
    import('../node_modules/@mlightcad/cad-pdf-plugin/lib/AcApPdfGlyphProvider.js'),
    import('@mlightcad/cad-pdf-plugin')
   ])
   // Fixed v1.7.8 PDF renderer: export model space using native vectors.
   // Do not infer INSUNITS, paper scale, external references or font availability.
-  const bytes=await exportDatabaseToPdf(db,{
+  const originalUnits=db.insunits
+  let bytesPromise:ReturnType<typeof exportDatabaseToPdf>
+  try{
+   if(scaleFitBox)db.insunits=scaleFitBox.unitCode
+   bytesPromise=exportDatabaseToPdf(db,{
    title:lastFileName,
    paper:paperDimensions,
    marginMm:10,
@@ -71,8 +82,11 @@ exportButton.addEventListener('click',async()=>{
    textFontResolver:resolveViewerTextFont,
    background:'none',
    fit:'extents',
-   layouts:'current'
-  })
+   layouts:'current',
+   ...(scaleFitBox?{fitBox:scaleFitBox.fitBox}:{})
+   })
+  }finally{db.insunits=originalUnits}
+  const bytes=await bytesPromise
   const audit=inspectPdfBytes(bytes)
   const filename=lastFileName.replace(/\.(dwg|dxf)$/i,'')+'.pdf'
   const blob=new Blob([new Uint8Array(bytes)],{type:'application/pdf'})
@@ -82,7 +96,7 @@ exportButton.addEventListener('click',async()=>{
    link.href=url;link.download=filename;link.rel='noopener'
    document.body.appendChild(link);link.click();link.remove()
   }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
-  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'），頁面設定 '+paperSize.value+' '+(orientation.value==='landscape'?'橫向':'直向')+'；已要求瀏覽器下載 '+filename+'。'+choice.warning+'；單位選擇尚未套用至 PDF 比例；圖面自動符合頁面，未實作 1:N 工程比例，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
+  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'），頁面設定 '+paperSize.value+' '+(orientation.value==='landscape'?'橫向':'直向')+(scaleFitBox?'、工程比例 1:'+scaleDenominator.value:'、依圖面範圍配紙（非工程比例）')+'；已要求瀏覽器下載 '+filename+'。'+(scaleFitBox?'使用者確認單位：'+choice.unit+'。':'單位不影響自動配紙比例。')+' 尚未驗證字型、XREF、圖元保真及 Safari 下載完成。')
  }catch(e){message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{exporting=false;exportButton.disabled=!documentReady||loading}
 })

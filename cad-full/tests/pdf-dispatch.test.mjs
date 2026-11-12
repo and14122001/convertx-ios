@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs'
 const source=readFileSync(new URL('../src/main.ts',import.meta.url),'utf8')
 const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8'))
 test('PDF export uses native renderer and active database, not command dispatch',()=>{
- assert.match(source,/await exportDatabaseToPdf\(db,/)
+ assert.match(source,/bytesPromise=exportDatabaseToPdf\(db,/)
  assert.match(source,/AcApDocManager\.instance\.context\.doc\.database/)
  assert.doesNotMatch(source,/sendStringToExecute\('cpdf'\)/)
 })
@@ -14,8 +14,8 @@ test('PDF export validates bytes before browser download',()=>{
  assert.match(source,/URL\.revokeObjectURL\(url\)/)
 })
 test('PDF export does not silently assert fidelity or engineering scale',()=>{
- assert.match(source,/未實作 1:N 工程比例/)
- assert.match(source,/單位選擇尚未套用至 PDF 比例/)
+ assert.match(source,/工程比例 1:/)
+ assert.match(source,/單位不影響自動配紙比例/)
  assert.match(source,/未驗證字型、XREF、圖元保真及 Safari 下載完成/)
 })
 test('PDF export passes selected A4/A3 page dimensions and orientation',()=>{
