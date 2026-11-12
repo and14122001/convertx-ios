@@ -8,12 +8,12 @@
   <style>
     :root{color-scheme:dark}
     *{box-sizing:border-box}
-    html,body{width:100%;min-height:100%;margin:0;background:#0f172a;color:#fff;font:16px/1.45 system-ui,-apple-system,sans-serif;overflow-x:hidden}
-    body{padding:0 max(12px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+    html,body{width:100%;min-height:100%;margin:0;background:#0f172a;color:#fff;font:16px/1.45 system-ui,-apple-system,sans-serif;overflow-x:hidden;overscroll-behavior-y:none}
+    body{padding:0 max(12px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));overscroll-behavior-y:none}
     .app{width:min(100%,1100px);margin:0 auto}
-    header{padding:max(12px,env(safe-area-inset-top)) 0 12px}
-    h1{font-size:1.25rem;margin:0 0 10px}
-    .control-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+    header{position:sticky;top:0;z-index:20;padding:max(8px,env(safe-area-inset-top)) 0 10px;background:#0f172a;border-bottom:1px solid #334155}
+    h1{font-size:1.15rem;margin:0 0 6px}
+    .control-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));gap:10px;align-items:end}
     .field{min-width:0}
     .field label{display:block;margin:0 0 5px;color:#dbeafe;font-size:.9rem}
     input,select,button{max-width:100%;min-height:44px;font:inherit}
@@ -35,27 +35,18 @@
     details.build-help p{margin:8px 0}
     #offline-status,#status{padding:7px 0;overflow-wrap:anywhere}
     #offline-status{color:#fbbf24}
-    #viewer{height:calc(100dvh - 230px);min-height:260px;position:relative;border-radius:10px;overflow:hidden}
+    #viewer{position:relative;border-radius:10px;overflow:hidden}
     #canvas{width:100%;height:100%}
-    @media(max-width:640px){
-      .control-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-      .unit-field,.scale-field,.paper-field,.orientation-field{grid-column:span 1}
-      .file-field,.export-field,.pdf-field,.back-field{grid-column:1/-1}
-      #viewer{height:46dvh;min-height:220px}
-    }
-    @media(max-width:360px){
-      .control-grid{grid-template-columns:minmax(0,1fr)}
-      .control-grid>.field{grid-column:1}
-      h1{font-size:1.1rem}
-    }
+    #viewer{height:min(46dvh,34rem);min-height:200px}
   </style>
 </head>
 <body>
   <main class="app">
     <header>
       <h1>ConvertX DWG → PDF 獨立測試版</h1>
-      <div class="control-grid">
-        <div class="field file-field"><label for="file">選擇 DWG／DXF</label><input id="file" type="file" accept=".dwg,.dxf"></div>
+      <div class="field file-field"><label for="file">選擇 DWG／DXF（檔案留在本機）</label><input id="file" type="file" accept=".dwg,.dxf"></div>
+    </header>
+    <div class="control-grid">
         <div class="field unit-field"><label for="unit-choice">原圖單位（人工確認）</label><select id="unit-choice"><option value="unknown">未知／未核對</option><option value="mm">毫米</option><option value="cm">公分</option><option value="m">公尺</option><option value="inch">英吋</option><option value="foot">英尺</option></select></div>
         <div class="field scale-field"><label for="scale-denominator">PDF 比例</label><select id="scale-denominator"><option value="fit">依範圍配紙（非工程比例）</option><option value="1">1:1</option><option value="2">1:2</option><option value="5">1:5</option><option value="10">1:10</option><option value="20">1:20</option><option value="25">1:25</option><option value="50">1:50</option><option value="100">1:100</option><option value="200">1:200</option><option value="500">1:500</option><option value="1000">1:1000</option></select></div>
         <div class="field paper-field"><label for="paper-size">PDF 紙張</label><select id="paper-size"><option value="A4">A4</option><option value="A3">A3</option></select></div>
@@ -63,8 +54,7 @@
         <div class="field export-field"><button id="export" disabled>輸出 PDF</button></div>
         <div class="field pdf-field"><label for="pdf-check">檢查匯出的 PDF（手動選取）</label><input id="pdf-check" type="file" accept=".pdf,application/pdf"></div>
         <div class="field back-field"><a href="../">返回 ConvertX</a></div>
-      </div>
-    </header>
+    </div>
     <p id="scale-help">預設依圖面範圍配紙，不具備工程比例。選擇 1:N 前須確認原圖單位；超出紙張時會拒絕匯出。</p>
     <details id="fidelity-warning"><summary>保真限制：PDF 需人工比對原圖，不可直接量測或施工</summary><p>本機匯出會使用檢視器字型目錄與字型／向量回退；SHX 或缺失字型仍可能缺字。XREF 未載入或核對；不支援及代理物件可能缺漏。</p></details>
     <section class="legal"><p>CAD 檔案只在本機瀏覽器處理。LibreDWG 授權與對應源碼版本仍在核對；<a href="./legal/GPL-3.0.txt">GPL-3.0</a>｜<a href="./legal/DWG-SOURCE.md">DWG 元件與來源說明</a></p></section>
