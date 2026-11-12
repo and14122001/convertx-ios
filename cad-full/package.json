@@ -23,9 +23,9 @@
     "@mlightcad/pdf-renderer": "1.7.8"
   },
   "devDependencies": {
-    "vite": "^7.0.0",
-    "vite-plugin-static-copy": "^4.0.0",
-    "typescript": "^5.9.0"
+    "vite": "7.3.8",
+    "vite-plugin-static-copy": "4.1.1",
+    "typescript": "5.9.3"
   },
   "overrides": {
     "lodash-es": "4.18.1"

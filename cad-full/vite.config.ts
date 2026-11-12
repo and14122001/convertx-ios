@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
-const copy=(src:string)=>({src,dest:'assets',rename:(name:string,ext:string)=>`${name}.${ext}`})
+const copy=(src:string)=>({src,dest:'assets',rename:{stripBase:true as const}})
 export default defineConfig({
   base:'./',
   build:{outDir:'dist',modulePreload:false},

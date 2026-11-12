@@ -9,6 +9,8 @@ import { exportDatabaseToPdf } from '@mlightcad/pdf-renderer'
 const status=document.getElementById('status') as HTMLElement
 const fileInput=document.getElementById('file') as HTMLInputElement
 const exportButton=document.getElementById('export') as HTMLButtonElement
+const paperSize=document.getElementById('paper-size') as HTMLSelectElement
+const orientation=document.getElementById('orientation') as HTMLSelectElement
 const workerUrls={mtextRender:'./assets/mtext-renderer-worker.js',dwgParser:'./assets/libredwg-parser-worker.js'}
 let initialized=false
 let loading=false
@@ -33,11 +35,16 @@ exportButton.addEventListener('click',async()=>{
  exporting=true;exportButton.disabled=true
  try{
   const choice=parseUnitChoice(unitChoice.value)
+  const paperDimensions=paperSize.value==='A3'?{widthMm:297,heightMm:420}:{widthMm:210,heightMm:297}
+  if(orientation.value==='landscape') [paperDimensions.widthMm,paperDimensions.heightMm]=[paperDimensions.heightMm,paperDimensions.widthMm]
+  else if(orientation.value!=='portrait') throw new Error('無效的紙張方向')
   const db=AcApDocManager.instance.context.doc.database
   // Fixed v1.7.8 PDF renderer: export model space using native vectors.
   // Do not infer INSUNITS, paper scale, external references or font availability.
   const bytes=await exportDatabaseToPdf(db,{
    title:lastFileName,
+   paper:paperDimensions,
+   marginMm:10,
    ltscale:db.ltscale,
    celtscale:db.celtscale,
    showLineWeight:!!db.lwdisplay,
@@ -54,7 +61,7 @@ exportButton.addEventListener('click',async()=>{
    link.href=url;link.download=filename;link.rel='noopener'
    document.body.appendChild(link);link.click();link.remove()
   }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
-  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+choice.warning+'；未套用實際紙張比例，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
+  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'），頁面設定 '+paperSize.value+' '+(orientation.value==='landscape'?'橫向':'直向')+'；已要求瀏覽器下載 '+filename+'。'+choice.warning+'；圖面自動符合頁面，未實作 1:N 工程比例，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
  }catch(e){message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{exporting=false;exportButton.disabled=!documentReady||loading}
 })

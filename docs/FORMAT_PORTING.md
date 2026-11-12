@@ -359,3 +359,13 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 新增 PDF 檔名靜態回歸案例，涵蓋大寫副檔名與含多個點的檔名；尚未在完整 checkout 執行。
 - 本執行環境 `git ls-remote` 因 GitHub DNS 失敗，Node/npm 可用但未取得完整依賴，因此未執行 tsc/Vite build、真實 DWG、Safari 飛航模式。GitHub connector 提交不等於功能驗收。
 - 核心阻塞：固定版本 renderer 型別/建置驗證、頁面尺寸/比例、字型與 XREF、至少兩份真實 DWG、iPhone 實機下載與 GPL 對應原始碼。
+
+### 2026-11-12 首次完整 Linux 建置與 PDF Renderer 位元組測試
+- 從 GitHub 最新 `main` HEAD `9ee7a2b65fc2e1a92048f9c1dd34d5a4ddbee115` checkout；使用 Node `v24.22.1`、npm `11.9.0`。依賴可從 npm registry 安裝，建立並提交 `package-lock.json`，Vite、TypeScript、static-copy 等建置工具改為鎖定實際版本。
+- 修正一項離線測試：先前錯誤要求 Service Worker 不檢查來源 origin，與現有安全實作相反。測試改為確保同源限制存在。
+- TypeScript 首次檢查發現 PDF audit 與 DWG preflight 的 `.mjs` 缺型別宣告；新增 `.d.mts` 型別介面。
+- 修正 `vite-plugin-static-copy` 的目標路徑：原設定未移除 `node_modules/...` 路徑，使 Worker/WASM 實際輸出位置與程式要求的 `assets/` 不符。現以 `rename.stripBase` 平鋪至 `dist/assets/`，離線發行 smoke check 全數找到。
+- Renderer API 1.7.8 支援 `paper: {widthMm,heightMm}`。新增 A4/A3 與直/橫向選項並傳入實際毫米尺寸；兩項新整合測試使用原生 renderer 建立真 PDF 位元組、驗證 `%PDF-1.7`、EOF、向量線段以及 A4/A3 MediaBox。這是合成線段 smoke test，**不是任何真實 DWG 保真測試**。
+- 驗證結果：`npm test` 46 項通過；`tsc --noEmit` 通過；`vite build` 通過；`check:dist` 通過。另以 `npm ci` 重現安裝成功。靜態離線包 6 個檔案，約 21.4 MB；其中應用 JS 約 5.5 MB、懶載 PDF plugin 約 3.4 MB、WASM 約 10.9 MB，需在 iPhone 實機評估首次離線快取時間與記憶體。Vite 對大 chunk 發出非阻擋警告。
+- GPL 查核：實際安裝的 `@mlightcad/libredwg-converter@3.15.21` 與其 `@mlightcad/libredwg-web@0.8.3` 均標示 GPL-3.0；已確認 converter tarball 含完整 GPLv3 LICENSE，libredwg-web 來源對應 tag `v0.8.3` 指向 commit `b5177613f2c735858a6d1cb1d1c7e238c397b88f`。仍未確認 converter 3.15.21 的完整對應源碼提交、所有 transitive notices 和 GPL 發行方案；release gate 未通過，沒有部署。
+- 尚未完成：至少兩份真實 DWG（目前無測試圖檔）、圖層/模型空間/BLOCK/INSERT/TEXT/MTEXT/DIMENSION/HATCH/XREF/字型逐類比對、1:N 工程比例（目前只有範圍符合紙張）、PDF 閱讀器完整解析與列印比例核對、GitHub Pages 發布、iPhone Safari/PWA 飛航模式下載驗收。不能宣稱 P0 完成。
