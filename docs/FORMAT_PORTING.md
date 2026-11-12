@@ -346,3 +346,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `cad-full/tests/license-release.test.mjs` 更新舊錯誤訊息預期並新增佔位授權文字拒絕案例；尚未在完整 checkout 執行，不宣稱測試通過。
 - 固定版原始碼：https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts
 - 下一關鍵任務：確認 PDF renderer 固定版直接 API 與資料庫取得方式、完成真正向量 PDF bytes 匯出及紙張比例驗證；再做兩份 DWG 與 Safari 飛航模式。
+
+### 2026-11-12 P0 原生 PDF 位元組輸出首次接線（尚待建置與真機驗證）
+- 依 `mlightcad/cad-viewer` **v1.7.8** 的 `AcApPdfConvertor.ts` 查核，使用 `AcApDocManager.instance.context.doc.database` 和 `@mlightcad/pdf-renderer` 的 `exportDatabaseToPdf`；固定 `@mlightcad/pdf-renderer` 為 `1.7.8`，與 viewer/plugin 相同版本。改以直接產生 PDF bytes、`inspectPdfBytes` 檢查、Blob 下載，取代僅派送 `cpdf` 命令。
+- 現階段 `fit:'extents'`、`layouts:'current'`，未提供紙張尺寸、1:N 比例或字型解析器；不可視為工程比例正確。PDF bytes 基本檢查不等於圖元保真、瀏覽器下載成功或完整 PDF 解析。
+- 更新 `pdf-dispatch.test.mjs` 為 4 項靜態回歸測試，覆蓋資料庫來源、bytes 檢查、警示及版本一致性。尚未在完整 checkout 執行 npm test、TypeScript、Vite build；`git ls-remote` 本次仍因 github.com DNS 無法解析。GitHub 連接器提交成功，但不等於建置成功。
+- 仍須核對 `pdf-renderer` 1.7.8 實際 npm 發行與型別、GPL 發行對應源碼、DWG 圖層/BLOCK/TEXT/HATCH/XREF、兩份真實 DWG 及 Safari 飛航模式。未部署、未觸發 Actions 或付費服務。
+- 依據：https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts
