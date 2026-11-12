@@ -5,6 +5,7 @@ import { AcApDocManager } from '@mlightcad/cad-simple-viewer'
 import { AcDbDatabaseConverterManager, AcDbFileType } from '@mlightcad/data-model'
 import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter'
 import { registerLazyPdfPlugin } from '@mlightcad/cad-pdf-plugin/register'
+import { exportDatabaseToPdf } from '@mlightcad/pdf-renderer'
 const status=document.getElementById('status') as HTMLElement
 const fileInput=document.getElementById('file') as HTMLInputElement
 const exportButton=document.getElementById('export') as HTMLButtonElement
@@ -32,11 +33,29 @@ exportButton.addEventListener('click',async()=>{
  exporting=true;exportButton.disabled=true
  try{
   const choice=parseUnitChoice(unitChoice.value)
-  // The upstream command may return before the user completes the PDF dialog.
-  // Await command dispatch errors, but never label dispatch as export success.
-  await Promise.resolve(AcApDocManager.instance.sendStringToExecute('cpdf'))
-  message(choice.warning+'。單位選項尚未套用至 PDF 比例；請在匯出介面手動核對。已送出 '+lastFileName+' 的 PDF 指令，但尚未取得輸出位元組、頁面尺寸或下載完成證據。請手動選取 PDF 檢查。')
- }catch(e){message('PDF 匯出指令失敗：'+(e instanceof Error?e.message:String(e)))}
+  const db=AcApDocManager.instance.context.doc.database
+  // Fixed v1.7.8 PDF renderer: export model space using native vectors.
+  // Do not infer INSUNITS, paper scale, external references or font availability.
+  const bytes=await exportDatabaseToPdf(db,{
+   title:lastFileName,
+   ltscale:db.ltscale,
+   celtscale:db.celtscale,
+   showLineWeight:!!db.lwdisplay,
+   background:'none',
+   fit:'extents',
+   layouts:'current'
+  })
+  const audit=inspectPdfBytes(bytes)
+  const filename=lastFileName.replace(/\\.(dwg|dxf)$/i,'')+'.pdf'
+  const blob=new Blob([new Uint8Array(bytes)],{type:'application/pdf'})
+  const url=URL.createObjectURL(blob)
+  try{
+   const link=document.createElement('a')
+   link.href=url;link.download=filename;link.rel='noopener'
+   document.body.appendChild(link);link.click();link.remove()
+  }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
+  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+choice.warning+'；未套用實際紙張比例，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
+ }catch(e){message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{exporting=false;exportButton.disabled=!documentReady||loading}
 })
 
