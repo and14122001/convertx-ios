@@ -48,7 +48,7 @@ exportButton.addEventListener('click',async()=>{
   // Do not infer INSUNITS, paper scale, external references or font availability.
   const marginMm=Number(marginChoice.value)
   if(!Number.isFinite(marginMm)||marginMm<0||marginMm>100)throw new Error('留白需為 0–100 mm')
-  let selectedPaper=paperChoice.value==='auto' ? 'extents' : resolvePaper(paperChoice.value,paperOrientation.value,customWidth.value,customHeight.value)
+  let selectedPaper: 'extents' | {widthMm:number;heightMm:number}=paperChoice.value==='auto' ? 'extents' : resolvePaper(paperChoice.value,paperOrientation.value,customWidth.value,customHeight.value)
   let advice='手動紙張設定'
   let autoMeasurement: Uint8Array | undefined
   if(paperChoice.value==='auto'){
