@@ -37,3 +37,14 @@ test('vector composition supports uniform upscaling and 10mm inset',()=>{
  assert.match(main,/out\.drawPage\(embedded,/)
  assert.match(main,/marginMm\*72\/25\.4/)
 })
+
+test('generated PDF page dimensions are checked before download',()=>{
+ assert.match(main,/verifiedDoc=await PDFDocument\.load\(bytes\)/)
+ assert.match(main,/actualWidthMm=verifiedPage\.getWidth\(\)\*25\.4\/72/)
+ assert.match(main,/Math\.abs\(actualWidthMm-selectedPaper\.widthMm\)>0\.1/)
+ assert.ok(main.indexOf('const verifiedDoc=')<main.indexOf('const blob=new Blob'))
+})
+test('rendered page is not falsely called precise CAD geometry',()=>{
+ assert.match(main,/含渲染留白，非精確圖元邊界/)
+ assert.throws(()=>recommendLayout(1e-320,1e308))
+})
