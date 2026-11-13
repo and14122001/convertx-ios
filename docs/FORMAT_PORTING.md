@@ -385,3 +385,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 核對上游固定版 `AcPdfPageLayout.ts`：固定紙張 `allowUpscale=false`，因此直接使用 renderer 的固定紙張輸出 **不能保證鋪滿**。智慧模式改採首輪 renderer 的向量 PDF，經 `pdf-lib` 的 `embedPdfPages` 以等比例 Form XObject 縮放置中至推薦紙張，保留 10mm 邊距；沒有重新柵格化。此流程目前僅單頁；多布局及 PDF OCG 圖層互動保真未驗證。
 - `pdf-lib` 固定為 1.17.1；新增 `tests/smart-layout.test.mjs`，涵蓋方向、錯誤邊界、預設留白、PDF 向量組版的靜態檢查。尚未取得完整 checkout 執行 npm test、tsc、Vite build，也未進行真實 DWG/PDF MediaBox、字型、iPhone Safari 離線驗收。**不得宣稱正式完成。**
 - 上游：https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/pdf-renderer/src/pdf/AcPdfPageLayout.ts ; https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/pdf-renderer/src/pdf/AcPdfDocumentWriter.ts
+
+### 2026-11-13 智慧排版驗證補強
+- 修正 `smart-layout.mjs` 非有限長寬比/倍率拒絕；`main.ts` 產出 PDF 後使用 `pdf-lib` 重新讀取實際 MediaBox，檢查頁數與紙張寬高（容許誤差 0.1 mm），失敗則停止下載；狀態列顯示實際頁面毫米尺寸。
+- 修正敘述：第一輪 `paper:'extents'` 的 PDF MediaBox **包含 renderer padding**，不能宣稱取得精確 CAD drawable bbox；目前僅使用渲染頁面比例估算。固定比例工程圖仍未驗收。智慧模式的 PDF Form XObject 可能影響 OCG 圖層互動，須與原始輸出比對。
+- 新增測試靜態檢查，確認 MediaBox gate 在 Blob 下載之前。無法從本地容器 clone GitHub（DNS `Could not resolve host: github.com`）；尚未執行完整 Node/TS/Vite、真實 DWG 或 iPhone Safari 驗收。不可宣稱已通過。
+- 已查上游官方文件：MLightCAD 1.8.0 起新增 headless `@mlightcad/cad-pdf-exporter`，但本專案固定 1.7.8，升級前需核對 API 與授權，不直接混裝版本。https://mlightcad.com/cad-viewer/docs/development/upgrade-guide.html
