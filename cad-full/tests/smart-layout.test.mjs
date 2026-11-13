@@ -30,3 +30,10 @@ test('invalid geometry and margin rejected',()=>{
  assert.throws(()=>recommendLayout(10,10,-1))
  assert.throws(()=>recommendLayout(10,10,101))
 })
+
+test('vector composition supports uniform upscaling and 10mm inset',()=>{
+ assert.match(main,/dst\.embedPdfPages\(\[src\.getPage\(0\)\]\)/)
+ assert.match(main,/Math\.min\(\(widthPt-2\*inset\)\/embedded\.width/)
+ assert.match(main,/out\.drawPage\(embedded,/)
+ assert.match(main,/marginMm\*72\/25\.4/)
+})
