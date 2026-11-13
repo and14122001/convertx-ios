@@ -379,3 +379,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `main.ts` 接線 `resolvePaper()` 到固定版 PDF renderer 的 `paper` 選項；`index.html` 加入分類選單、橫直向與自訂尺寸輸入。選項只代表紙張 MediaBox 目標，**不代表 CAD 單位或 1:N 比例已校正**。
 - `tests/paper-sizes.test.mjs` 新增尺寸、橫向、自訂值防呆測試；更新 `pdf-dispatch.test.mjs` 靜態檢查。尚未在完整 checkout 執行 Node/TS/Vite，也未實測 PDF MediaBox、Safari、DWG 保真。
 - 尺寸資料：https://www.cl.cam.ac.uk/~mgk25/iso-paper.html ; https://support.hp.com/hr-en/document/bpq04022
+
+### 2026-11-13 智慧 PDF 排版：實際圖元測量、選紙、自動方向、10mm 留白
+- 已新增 `src/smart-layout.mjs`：使用 **renderer 真正繪製的 PDF extents 頁面 MediaBox** 長寬比，而非不可信的 DWG header EXTMIN/EXTMAX、未核實的 CAD 單位。依可用紙面利用率及 A4 優先偏好，於常用 A/ANSI/ARCH/US 尺寸中推薦紙張與方向；顯示預估利用率，預設留白 10mm。此為排版推薦，非工程比例。
+- 核對上游固定版 `AcPdfPageLayout.ts`：固定紙張 `allowUpscale=false`，因此直接使用 renderer 的固定紙張輸出 **不能保證鋪滿**。智慧模式改採首輪 renderer 的向量 PDF，經 `pdf-lib` 的 `embedPdfPages` 以等比例 Form XObject 縮放置中至推薦紙張，保留 10mm 邊距；沒有重新柵格化。此流程目前僅單頁；多布局及 PDF OCG 圖層互動保真未驗證。
+- `pdf-lib` 固定為 1.17.1；新增 `tests/smart-layout.test.mjs`，涵蓋方向、錯誤邊界、預設留白、PDF 向量組版的靜態檢查。尚未取得完整 checkout 執行 npm test、tsc、Vite build，也未進行真實 DWG/PDF MediaBox、字型、iPhone Safari 離線驗收。**不得宣稱正式完成。**
+- 上游：https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/pdf-renderer/src/pdf/AcPdfPageLayout.ts ; https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/pdf-renderer/src/pdf/AcPdfDocumentWriter.ts
