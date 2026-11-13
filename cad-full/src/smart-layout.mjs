@@ -1,4 +1,4 @@
-import {PAPER_SIZES,resolvePaper} from './paper-sizes.mjs'
+import {resolvePaper} from './paper-sizes.mjs'
 
 // Geometry ratio is obtained from the PDF renderer's actual drawable extents,
 // not DWG header EXTMIN/EXTMAX or guessed CAD units.
@@ -6,6 +6,7 @@ export function recommendLayout(width,height,marginMm=10){
  if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)throw new Error('無法取得有效的實際圖元邊界')
  if(!Number.isFinite(marginMm)||marginMm<0||marginMm>100)throw new Error('留白超出範圍')
  const ratio=width/height
+ if(!Number.isFinite(ratio)||ratio<=0)throw new Error('圖元長寬比超出可處理範圍')
  const preferred=['a4','a3','a2','a1','a0','letter','legal','tabloid','ansi-c','ansi-d','arch-c','arch-d']
  const candidates=[]
  for(const key of preferred){
@@ -14,6 +15,7 @@ export function recommendLayout(width,height,marginMm=10){
    const innerW=paper.widthMm-2*marginMm,innerH=paper.heightMm-2*marginMm
    if(innerW<=0||innerH<=0)continue
    const fit=Math.min(innerW/width,innerH/height)
+   if(!Number.isFinite(fit)||fit<=0)continue
    const occupancy=(width*fit)*(height*fit)/(innerW*innerH)
    // Prefer high utilization, then standard A4 to avoid arbitrary large paper.
    const score=occupancy-0.025*preferred.indexOf(key)
