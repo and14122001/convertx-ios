@@ -50,9 +50,11 @@ exportButton.addEventListener('click',async()=>{
   if(!Number.isFinite(marginMm)||marginMm<0||marginMm>100)throw new Error('留白需為 0–100 mm')
   let selectedPaper=paperChoice.value==='auto' ? 'extents' : resolvePaper(paperChoice.value,paperOrientation.value,customWidth.value,customHeight.value)
   let advice='手動紙張設定'
+  let autoMeasurement: Uint8Array | undefined
   if(paperChoice.value==='auto'){
    message('正在依實際可繪圖元測量邊界並推薦紙張…')
    const measurement=await exportDatabaseToPdf(db,{paper:'extents',marginMm:0,background:'none',fit:'extents',layouts:'current',fontMapping:AcApSettingManager.instance.fontMapping})
+   autoMeasurement=measurement
    const measuredDoc=await PDFDocument.load(measurement)
    const page=measuredDoc.getPages()[0]
    if(!page)throw new Error('實際圖元沒有可測量的 PDF 頁面')
@@ -63,7 +65,22 @@ exportButton.addEventListener('click',async()=>{
    advice='自動推薦 '+recommended.key.toUpperCase()+' '+(recommended.orientation==='landscape'?'橫向':'直向')+'；可印區利用率約 '+(recommended.occupancy*100).toFixed(1)+'%（實際渲染圖元估算，非工程比例）'
    layoutAdvice.textContent=advice
   }
-  const bytes=await exportDatabaseToPdf(db,{
+  const bytes=autoMeasurement ? await (async()=>{
+   // pdf-lib embeds the measured PDF page as vector Form XObject, allowing
+   // uniform UPSCALING that fixed-paper renderer v1.7.8 otherwise forbids.
+   const src=await PDFDocument.load(autoMeasurement)
+   if(src.getPageCount()!==1)throw new Error('智慧排版目前僅支援單頁圖面')
+   const dst=await PDFDocument.create()
+   const [embedded]=await dst.embedPdfPages([src.getPage(0)])
+   const widthPt=selectedPaper==='extents'?src.getPage(0).getWidth():selectedPaper.widthMm*72/25.4
+   const heightPt=selectedPaper==='extents'?src.getPage(0).getHeight():selectedPaper.heightMm*72/25.4
+   const inset=marginMm*72/25.4
+   const factor=Math.min((widthPt-2*inset)/embedded.width,(heightPt-2*inset)/embedded.height)
+   if(!Number.isFinite(factor)||factor<=0)throw new Error('留白超過紙張可用尺寸')
+   const out=dst.addPage([widthPt,heightPt])
+   out.drawPage(embedded,{x:(widthPt-embedded.width*factor)/2,y:(heightPt-embedded.height*factor)/2,width:embedded.width*factor,height:embedded.height*factor})
+   return dst.save({useObjectStreams:true})
+  })() : await exportDatabaseToPdf(db,{
    title:lastFileName,
    ltscale:db.ltscale,
    celtscale:db.celtscale,
