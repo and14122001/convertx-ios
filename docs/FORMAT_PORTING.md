@@ -391,3 +391,8 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 修正敘述：第一輪 `paper:'extents'` 的 PDF MediaBox **包含 renderer padding**，不能宣稱取得精確 CAD drawable bbox；目前僅使用渲染頁面比例估算。固定比例工程圖仍未驗收。智慧模式的 PDF Form XObject 可能影響 OCG 圖層互動，須與原始輸出比對。
 - 新增測試靜態檢查，確認 MediaBox gate 在 Blob 下載之前。無法從本地容器 clone GitHub（DNS `Could not resolve host: github.com`）；尚未執行完整 Node/TS/Vite、真實 DWG 或 iPhone Safari 驗收。不可宣稱已通過。
 - 已查上游官方文件：MLightCAD 1.8.0 起新增 headless `@mlightcad/cad-pdf-exporter`，但本專案固定 1.7.8，升級前需核對 API 與授權，不直接混裝版本。https://mlightcad.com/cad-viewer/docs/development/upgrade-guide.html
+
+### 2026-11-13 手動 CI 驗證入口
+- 新增 `.github/workflows/cad-full-manual-validation.yml`，僅 `workflow_dispatch`，不隨 push 自動觸發，避免額外 Actions 額度消耗；執行 Node 24、`npm test`、`npm run check`、`npm run build`、dist 檔案存在性檢查。
+- 查證 `cad-full/package-lock.json` 不存在，因此 CI 改用 `npm install --no-package-lock --no-audit --no-fund`；目前仍非完整 lockfile 可重現安裝，後續應建立並提交 npm lockfile，再切換 `npm ci`。
+- 此工作流程**尚未執行**；不代表測試、TypeScript 或 Vite 已通過。執行前需檢查 Actions 免費額度。
