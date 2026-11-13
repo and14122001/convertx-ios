@@ -1,3 +1,4 @@
+import {resolvePaper} from './paper-sizes.mjs'
 import {inspectPdfBytes} from './pdf-audit.mjs'
 import {inspectDwgHeader,parseUnitChoice} from './dwg-preflight.mjs'
 import { validateCadFile } from './file-validation'
@@ -18,6 +19,10 @@ let lastFileName=''
 let lastPreflight=''
 const unitChoice=document.getElementById('unit-choice') as HTMLSelectElement
 const paperChoice=document.getElementById('paper-choice') as HTMLSelectElement
+const paperOrientation=document.getElementById('paper-orientation') as HTMLSelectElement
+const customWidth=document.getElementById('paper-width') as HTMLInputElement
+const customHeight=document.getElementById('paper-height') as HTMLInputElement
+paperChoice.addEventListener('change',()=>{const custom=paperChoice.value==='custom';customWidth.disabled=!custom;customHeight.disabled=!custom})
 function resetFileState(){documentReady=false;lastPreflight='';exportButton.disabled=true}
 function message(s:string){status.textContent=s}
 async function initialize(){if(initialized)return
@@ -44,7 +49,7 @@ exportButton.addEventListener('click',async()=>{
    showLineWeight:!!db.lwdisplay,
    background:'none',
    fontMapping: AcApSettingManager.instance.fontMapping,
-   paper: paperChoice.value === 'a4' ? {widthMm:210,heightMm:297} : paperChoice.value === 'a3' ? {widthMm:297,heightMm:420} : 'extents',
+   paper: resolvePaper(paperChoice.value,paperOrientation.value,customWidth.value,customHeight.value),
    fit:'extents',
    layouts:'current'
   })
