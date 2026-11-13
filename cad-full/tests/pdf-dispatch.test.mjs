@@ -30,8 +30,10 @@ test('PDF filename strips only final CAD extension',()=>{
 test('paper presets and missing glyph provider warning are explicit',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8')
  assert.match(html,/id="paper-choice"/)
- assert.match(source,/widthMm:210,heightMm:297/)
- assert.match(source,/widthMm:297,heightMm:420/)
+ assert.match(source,/resolvePaper\(paperChoice\.value,paperOrientation\.value/)
+ assert.match(html,/value="a0"/)
+ assert.match(html,/value="ansi-e"/)
+ assert.match(html,/value="arch-e"/)
  assert.match(source,/缺少 PDF glyphProvider/)
  assert.match(source,/fontMapping: AcApSettingManager\.instance\.fontMapping/)
 })
