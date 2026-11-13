@@ -14,7 +14,7 @@ test('PDF export validates bytes before browser download',()=>{
  assert.match(source,/URL\.revokeObjectURL\(url\)/)
 })
 test('PDF export does not silently assert fidelity or paper scale',()=>{
- assert.match(source,/未套用實際紙張比例/)
+ assert.match(source,/紙張選項不代表已實現 1:N 工程比例/)
  assert.match(source,/未驗證字型、XREF、圖元保真及 Safari 下載完成/)
 })
 test('PDF renderer is pinned to viewer release',()=>{
@@ -25,4 +25,13 @@ test('PDF filename strips only final CAD extension',()=>{
  assert.match(source,/lastFileName\.replace\(\/\\\.\(dwg\|dxf\)\$\/i,''\)/)
  assert.equal('drawing.DWG'.replace(/\.(dwg|dxf)$/i,'')+'.pdf','drawing.pdf')
  assert.equal('plan.v2.dwg'.replace(/\.(dwg|dxf)$/i,'')+'.pdf','plan.v2.pdf')
+})
+
+test('paper presets and missing glyph provider warning are explicit',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8')
+ assert.match(html,/id="paper-choice"/)
+ assert.match(source,/widthMm:210,heightMm:297/)
+ assert.match(source,/widthMm:297,heightMm:420/)
+ assert.match(source,/缺少 PDF glyphProvider/)
+ assert.match(source,/fontMapping: AcApSettingManager\.instance\.fontMapping/)
 })
