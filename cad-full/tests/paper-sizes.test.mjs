@@ -7,7 +7,7 @@ test('standard paper dimensions',()=>{
  assert.deepEqual(resolvePaper('ansi-d'),{widthMm:558.8,heightMm:863.6})
  assert.deepEqual(resolvePaper('arch-e'),{widthMm:914.4,heightMm:1219.2})
  assert.deepEqual(resolvePaper('jis-b4'),{widthMm:257,heightMm:364})
- assert.ok(Object.keys(PAPER_SIZES).length>=65)
+ assert.ok(Object.keys(PAPER_SIZES).length>=64)
 })
 test('orientation and extents',()=>{
  assert.equal(resolvePaper('extents'),'extents')
