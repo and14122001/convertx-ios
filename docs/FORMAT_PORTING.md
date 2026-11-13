@@ -373,3 +373,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 下一步必須以固定版 PDF plugin 的 `createViewerPdfGlyphProvider` 等已驗證實作接線，或採用 plugin 的完整 convert 管線並另行取得 bytes；不能因 PDF 檔案存在就宣稱 TEXT/MTEXT/SHAPE 保真。
 - 本批為 GitHub connector 檔案提交；沒有執行完整 checkout 的 npm test/tsc/Vite、兩份真實 DWG、iPhone 飛航模式；以上尚未驗收。
 - 來源：https://github.com/mlightcad/cad-simple-viewer-example ; https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/pdf-renderer/src/AcPdfExportOptions.ts ; https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts
+
+### 2026-11-13 全紙張規格與方向設定
+- 新增 `cad-full/src/paper-sizes.mjs`，提供 64 種預設紙張：ISO A/B/C (A0–A10、B0–B10、C0–C10)、2A0、4A0、JIS B0–B10、US Letter/Legal/Tabloid/Executive、ANSI A–F、ARCH A–E/E1–E3；可自訂毫米寬高（0–5000mm 正數）。
+- `main.ts` 接線 `resolvePaper()` 到固定版 PDF renderer 的 `paper` 選項；`index.html` 加入分類選單、橫直向與自訂尺寸輸入。選項只代表紙張 MediaBox 目標，**不代表 CAD 單位或 1:N 比例已校正**。
+- `tests/paper-sizes.test.mjs` 新增尺寸、橫向、自訂值防呆測試；更新 `pdf-dispatch.test.mjs` 靜態檢查。尚未在完整 checkout 執行 Node/TS/Vite，也未實測 PDF MediaBox、Safari、DWG 保真。
+- 尺寸資料：https://www.cl.cam.ac.uk/~mgk25/iso-paper.html ; https://support.hp.com/hr-en/document/bpq04022
