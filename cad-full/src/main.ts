@@ -1,3 +1,5 @@
+import {recommendLayout} from './smart-layout.mjs'
+import {PDFDocument} from 'pdf-lib'
 import {resolvePaper} from './paper-sizes.mjs'
 import {inspectPdfBytes} from './pdf-audit.mjs'
 import {inspectDwgHeader,parseUnitChoice} from './dwg-preflight.mjs'
@@ -19,6 +21,8 @@ let lastFileName=''
 let lastPreflight=''
 const unitChoice=document.getElementById('unit-choice') as HTMLSelectElement
 const paperChoice=document.getElementById('paper-choice') as HTMLSelectElement
+const marginChoice=document.getElementById('paper-margin') as HTMLInputElement
+const layoutAdvice=document.getElementById('layout-advice') as HTMLElement
 const paperOrientation=document.getElementById('paper-orientation') as HTMLSelectElement
 const customWidth=document.getElementById('paper-width') as HTMLInputElement
 const customHeight=document.getElementById('paper-height') as HTMLInputElement
@@ -42,6 +46,23 @@ exportButton.addEventListener('click',async()=>{
   const db=AcApDocManager.instance.context.doc.database
   // Fixed v1.7.8 PDF renderer: export model space using native vectors.
   // Do not infer INSUNITS, paper scale, external references or font availability.
+  const marginMm=Number(marginChoice.value)
+  if(!Number.isFinite(marginMm)||marginMm<0||marginMm>100)throw new Error('留白需為 0–100 mm')
+  let selectedPaper=resolvePaper(paperChoice.value,paperOrientation.value,customWidth.value,customHeight.value)
+  let advice='手動紙張設定'
+  if(paperChoice.value==='auto'){
+   message('正在依實際可繪圖元測量邊界並推薦紙張…')
+   const measurement=await exportDatabaseToPdf(db,{paper:'extents',marginMm:0,background:'none',fit:'extents',layouts:'current',fontMapping:AcApSettingManager.instance.fontMapping})
+   const measuredDoc=await PDFDocument.load(measurement)
+   const page=measuredDoc.getPages()[0]
+   if(!page)throw new Error('實際圖元沒有可測量的 PDF 頁面')
+   const w=page.getWidth(),h=page.getHeight()
+   if(w>=14399||h>=14399)throw new Error('圖元範圍超過 PDF 測量上限，請手動指定紙張')
+   const recommended=recommendLayout(w,h,marginMm)
+   selectedPaper=recommended.paper
+   advice='自動推薦 '+recommended.key.toUpperCase()+' '+(recommended.orientation==='landscape'?'橫向':'直向')+'；可印區利用率約 '+(recommended.occupancy*100).toFixed(1)+'%（實際渲染圖元估算，非工程比例）'
+   layoutAdvice.textContent=advice
+  }
   const bytes=await exportDatabaseToPdf(db,{
    title:lastFileName,
    ltscale:db.ltscale,
@@ -49,7 +70,8 @@ exportButton.addEventListener('click',async()=>{
    showLineWeight:!!db.lwdisplay,
    background:'none',
    fontMapping: AcApSettingManager.instance.fontMapping,
-   paper: resolvePaper(paperChoice.value,paperOrientation.value,customWidth.value,customHeight.value),
+   paper: selectedPaper,
+   marginMm,
    fit:'extents',
    layouts:'current'
   })
@@ -62,7 +84,7 @@ exportButton.addEventListener('click',async()=>{
    link.href=url;link.download=filename;link.rel='noopener'
    document.body.appendChild(link);link.click();link.remove()
   }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
-  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；缺少 PDF glyphProvider，TEXT/MTEXT/SHAPE 可能不顯示，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
+  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；缺少 PDF glyphProvider，TEXT/MTEXT/SHAPE 可能不顯示，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
  }catch(e){message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{exporting=false;exportButton.disabled=!documentReady||loading}
 })
