@@ -60,9 +60,11 @@ exportButton.addEventListener('click',async()=>{
    if(!page)throw new Error('實際圖元沒有可測量的 PDF 頁面')
    const w=page.getWidth(),h=page.getHeight()
    if(w>=14399||h>=14399)throw new Error('圖元範圍超過 PDF 測量上限，請手動指定紙張')
+   // The renderer adds its own padding; this is an aspect-ratio estimate,
+   // not a direct geometry bounding box or proof of CAD scale.
    const recommended=recommendLayout(w,h,marginMm)
    selectedPaper=recommended.paper
-   advice='自動推薦 '+recommended.key.toUpperCase()+' '+(recommended.orientation==='landscape'?'橫向':'直向')+'；可印區利用率約 '+(recommended.occupancy*100).toFixed(1)+'%（實際渲染圖元估算，非工程比例）'
+   advice='自動推薦 '+recommended.key.toUpperCase()+' '+(recommended.orientation==='landscape'?'橫向':'直向')+'；可印區利用率約 '+(recommended.occupancy*100).toFixed(1)+'%（依渲染 PDF 頁面比例估算，含渲染留白，非精確圖元邊界／工程比例）'
    layoutAdvice.textContent=advice
   }
   const bytes=autoMeasurement ? await (async()=>{
@@ -93,6 +95,13 @@ exportButton.addEventListener('click',async()=>{
    layouts:'current'
   })
   const audit=inspectPdfBytes(bytes)
+  const verifiedDoc=await PDFDocument.load(bytes)
+  if(verifiedDoc.getPageCount()!==1)throw new Error('目前僅支援單頁 PDF 驗收；輸出頁數異常')
+  const verifiedPage=verifiedDoc.getPage(0)
+  const actualWidthMm=verifiedPage.getWidth()*25.4/72
+  const actualHeightMm=verifiedPage.getHeight()*25.4/72
+  if(selectedPaper!=='extents'&&(Math.abs(actualWidthMm-selectedPaper.widthMm)>0.1||Math.abs(actualHeightMm-selectedPaper.heightMm)>0.1))throw new Error('PDF MediaBox 紙張尺寸與設定不符，停止下載')
+  const pageAudit='PDF MediaBox '+actualWidthMm.toFixed(1)+'×'+actualHeightMm.toFixed(1)+' mm'
   const filename=lastFileName.replace(/\.(dwg|dxf)$/i,'')+'.pdf'
   const blob=new Blob([new Uint8Array(bytes)],{type:'application/pdf'})
   const url=URL.createObjectURL(blob)
@@ -101,7 +110,7 @@ exportButton.addEventListener('click',async()=>{
    link.href=url;link.download=filename;link.rel='noopener'
    document.body.appendChild(link);link.click();link.remove()
   }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
-  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；缺少 PDF glyphProvider，TEXT/MTEXT/SHAPE 可能不顯示，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
+  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+pageAudit+'；'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；缺少 PDF glyphProvider，TEXT/MTEXT/SHAPE 可能不顯示，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
  }catch(e){message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{exporting=false;exportButton.disabled=!documentReady||loading}
 })
