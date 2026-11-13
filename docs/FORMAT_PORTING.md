@@ -365,3 +365,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 手機檔案輸入及按鈕設為容器寬度，加入 box-sizing 與最小觸控高度，避免水平溢出；加入 `overscroll-behavior-y:contain` 減少下拉重新整理干擾，但 iOS Safari 對此 CSS 支援仍須實機確認。
 - 新增 `tests/mobile-layout.test.mjs` 兩項靜態回歸案例；僅確認 HTML/CSS 原始碼特徵，**不等於** Chrome/iPhone Safari 操作成功或 DWG→PDF 成功。
 - 未取得完整 Linux checkout/固定 npm 依賴，未執行完整 npm test、tsc、Vite build；尚需實際手機截圖、檔案選取、兩份真實 DWG、離線向量 PDF 及 GPL 發行驗收。
+
+### 2026-11-13 上游已成功方案比對與 PDF 紙張接線
+- 參照 `mlightcad/cad-simple-viewer-example` 已實作瀏覽器 Worker+WASM、PDF 匯出與相對路徑 Pages 部署；其 PDF plugin 使用 `@mlightcad/pdf-renderer`，不是 SVG 轉 PDF。
+- 直接核對上游 `cad-viewer` **v1.7.8** 的 `AcPdfExportOptions.ts`：支援 `paper:'extents'|{widthMm,heightMm}`、`fontMapping`、`glyphProvider`、`textFontResolver`、`layouts`，但沒有已驗證的 1:N 工程比例控制。
+- 本批 `main.ts` 與 `index.html` 新增 A4/A3 紙張選擇，傳遞 viewer fontMapping，並明確警示：現行直接呼叫 PDF renderer **未提供 glyphProvider**；上游文件指出此時文字可能不產生可見幾何。此為**高優先級阻塞**，不得將現行 PDF 視為文字保真。
+- 下一步必須以固定版 PDF plugin 的 `createViewerPdfGlyphProvider` 等已驗證實作接線，或採用 plugin 的完整 convert 管線並另行取得 bytes；不能因 PDF 檔案存在就宣稱 TEXT/MTEXT/SHAPE 保真。
+- 本批為 GitHub connector 檔案提交；沒有執行完整 checkout 的 npm test/tsc/Vite、兩份真實 DWG、iPhone 飛航模式；以上尚未驗收。
+- 來源：https://github.com/mlightcad/cad-simple-viewer-example ; https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/pdf-renderer/src/AcPdfExportOptions.ts ; https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts
