@@ -15,10 +15,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: cad-full/package-lock.json
-      - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
+      # No package-lock.json is tracked in cad-full yet; do not use npm ci.
+      - name: Install pinned dependencies
+        run: npm install --no-package-lock --no-audit --no-fund
       - name: Node regression tests
         run: npm test
       - name: TypeScript
