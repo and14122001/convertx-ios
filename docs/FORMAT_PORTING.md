@@ -359,3 +359,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 新增 PDF 檔名靜態回歸案例，涵蓋大寫副檔名與含多個點的檔名；尚未在完整 checkout 執行。
 - 本執行環境 `git ls-remote` 因 GitHub DNS 失敗，Node/npm 可用但未取得完整依賴，因此未執行 tsc/Vite build、真實 DWG、Safari 飛航模式。GitHub connector 提交不等於功能驗收。
 - 核心阻塞：固定版本 renderer 型別/建置驗證、頁面尺寸/比例、字型與 XREF、至少兩份真實 DWG、iPhone 實機下載與 GPL 對應原始碼。
+
+### 2026-11-13 iPhone/Chrome 響應式操作介面修復（未通過真機驗收）
+- `cad-full/index.html` 改用可換行的自適應控制列、窄螢幕單欄排版、`100dvh` 最小頁面高度、可伸縮檢視區；移除固定 `calc(100dvh - 145px)`，避免工具列變高後遮蔽檔案選擇與操作區。
+- 手機檔案輸入及按鈕設為容器寬度，加入 box-sizing 與最小觸控高度，避免水平溢出；加入 `overscroll-behavior-y:contain` 減少下拉重新整理干擾，但 iOS Safari 對此 CSS 支援仍須實機確認。
+- 新增 `tests/mobile-layout.test.mjs` 兩項靜態回歸案例；僅確認 HTML/CSS 原始碼特徵，**不等於** Chrome/iPhone Safari 操作成功或 DWG→PDF 成功。
+- 未取得完整 Linux checkout/固定 npm 依賴，未執行完整 npm test、tsc、Vite build；尚需實際手機截圖、檔案選取、兩份真實 DWG、離線向量 PDF 及 GPL 發行驗收。
