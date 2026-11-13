@@ -1,7 +1,7 @@
 import {inspectPdfBytes} from './pdf-audit.mjs'
 import {inspectDwgHeader,parseUnitChoice} from './dwg-preflight.mjs'
 import { validateCadFile } from './file-validation'
-import { AcApDocManager } from '@mlightcad/cad-simple-viewer'
+import { AcApDocManager, AcApSettingManager } from '@mlightcad/cad-simple-viewer'
 import { AcDbDatabaseConverterManager, AcDbFileType } from '@mlightcad/data-model'
 import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter'
 import { registerLazyPdfPlugin } from '@mlightcad/cad-pdf-plugin/register'
@@ -17,6 +17,7 @@ let exporting=false
 let lastFileName=''
 let lastPreflight=''
 const unitChoice=document.getElementById('unit-choice') as HTMLSelectElement
+const paperChoice=document.getElementById('paper-choice') as HTMLSelectElement
 function resetFileState(){documentReady=false;lastPreflight='';exportButton.disabled=true}
 function message(s:string){status.textContent=s}
 async function initialize(){if(initialized)return
@@ -42,6 +43,8 @@ exportButton.addEventListener('click',async()=>{
    celtscale:db.celtscale,
    showLineWeight:!!db.lwdisplay,
    background:'none',
+   fontMapping: AcApSettingManager.instance.fontMapping,
+   paper: paperChoice.value === 'a4' ? {widthMm:210,heightMm:297} : paperChoice.value === 'a3' ? {widthMm:297,heightMm:420} : 'extents',
    fit:'extents',
    layouts:'current'
   })
@@ -54,7 +57,7 @@ exportButton.addEventListener('click',async()=>{
    link.href=url;link.download=filename;link.rel='noopener'
    document.body.appendChild(link);link.click();link.remove()
   }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
-  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+choice.warning+'；未套用實際紙張比例，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
+  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；缺少 PDF glyphProvider，TEXT/MTEXT/SHAPE 可能不顯示，未驗證字型、XREF、圖元保真及 Safari 下載完成。')
  }catch(e){message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{exporting=false;exportButton.disabled=!documentReady||loading}
 })
