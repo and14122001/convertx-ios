@@ -1,0 +1,29 @@
+name: ConvertX CAD Full validation (manual)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: cad-full
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: cad-full/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Node regression tests
+        run: npm test
+      - name: TypeScript
+        run: npm run check
+      - name: Production build and offline assets
+        run: npm run build
+      - name: Confirm output files
+        run: test -f dist/index.html && test -f dist/sw.js && test -f dist/offline-manifest.json
