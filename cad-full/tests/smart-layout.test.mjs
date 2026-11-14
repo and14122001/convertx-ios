@@ -48,3 +48,15 @@ test('rendered page is not falsely called precise CAD geometry',()=>{
  assert.match(main,/含渲染留白，非精確圖元邊界/)
  assert.throws(()=>recommendLayout(1e-320,1e308))
 })
+
+test('unverified DWG fidelity is prominently disclosed before PDF download',()=>{
+ assert.match(html,/id="unsupported-notice" role="alert"/)
+ assert.match(main,/XREF、缺字型、代理物件、不可解析圖元/)
+ assert.match(main,/原 PDF 的可切換圖層可能不保留/)
+ assert.ok(main.indexOf('unsupportedNotice.textContent=')<main.indexOf('exportButton.addEventListener'))
+})
+test('PDF composition retains filename metadata and nonempty output guard',()=>{
+ assert.match(main,/dst\.setTitle\(lastFileName\)/)
+ assert.match(main,/if\(bytes\.byteLength===0\)/)
+ assert.match(main,/const measuredBytes=autoMeasurement/)
+})
