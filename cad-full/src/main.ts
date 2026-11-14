@@ -69,10 +69,11 @@ exportButton.addEventListener('click',async()=>{
    advice='自動推薦 '+recommended.key.toUpperCase()+' '+(recommended.orientation==='landscape'?'橫向':'直向')+'；可印區利用率約 '+(recommended.occupancy*100).toFixed(1)+'%（依渲染 PDF 頁面比例估算，含渲染留白，非精確圖元邊界／工程比例）'
    layoutAdvice.textContent=advice
   }
-  const bytes=autoMeasurement ? await (async()=>{
+  const measuredBytes=autoMeasurement
+  const bytes=measuredBytes ? await (async()=>{
    // pdf-lib embeds the measured PDF page as vector Form XObject, allowing
    // uniform UPSCALING that fixed-paper renderer v1.7.8 otherwise forbids.
-   const src=await PDFDocument.load(autoMeasurement)
+   const src=await PDFDocument.load(measuredBytes)
    if(src.getPageCount()!==1)throw new Error('智慧排版目前僅支援單頁圖面')
    const dst=await PDFDocument.create()
    dst.setTitle(lastFileName)
