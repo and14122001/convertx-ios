@@ -396,3 +396,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 新增 `.github/workflows/cad-full-manual-validation.yml`，僅 `workflow_dispatch`，不隨 push 自動觸發，避免額外 Actions 額度消耗；執行 Node 24、`npm test`、`npm run check`、`npm run build`、dist 檔案存在性檢查。
 - 查證 `cad-full/package-lock.json` 不存在，因此 CI 改用 `npm install --no-package-lock --no-audit --no-fund`；目前仍非完整 lockfile 可重現安裝，後續應建立並提交 npm lockfile，再切換 `npm ci`。
 - 此工作流程**尚未執行**；不代表測試、TypeScript 或 Vite 已通過。執行前需檢查 Actions 免費額度。
+
+### 2026-11-14 08:44 CST 批次：DWG 保真風險提示及 PDF 組版防護
+- 重新讀取最新 `main.ts`、`smart-layout.mjs`、`package.json`、測試、手動 CI 流程及本文件。檢查到智慧模式以 PDF Form XObject 重新嵌入頁面：可保留向量路徑，但不應聲稱保留原始 OCG 可切換圖層，或以 PDF MediaBox 推斷精確 CAD bbox。
+- `main.ts` 與 `index.html` 加入可見保真風險提示，涵蓋 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT；成功匯出仍不等於圖元保真。輸出 PDF 增加原始檔名 metadata、空檔防護，修正 async PDF Uint8Array 型別收斂。
+- `tests/smart-layout.test.mjs` 新增警告/metadata/防護回歸檢查。未執行 Node/npm/Vite，故**測試狀態待驗證**。本環境 `git ls-remote https://github.com/and14122001/convertx-ios.git` 實際失敗 `Could not resolve host: github.com`；GitHub connector 可讀寫單檔但不能替代完整 checkout/建置。未觸發 Actions 或修改其他 repo/排程。
+- 上游 1.8.0 已提供 headless PDF exporter，但本專案仍固定 1.7.8；避免未經版本相容驗證就混用。來源：https://mlightcad.com/cad-viewer/docs/development/upgrade-guide.html；PDF 重新嵌入 API：https://pdf-lib.js.org/docs/api/classes/pdfdocument
+- 下一步：取得可連網 Linux runner 建立 npm lockfile，執行 `npm test`、`npm run check`、`npm run build`，收集至少兩份授權使用的真實 DWG 比對 PDF；iPhone Safari/PWA 飛航模式驗收尚未完成。
