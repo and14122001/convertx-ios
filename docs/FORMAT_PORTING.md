@@ -403,3 +403,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `tests/smart-layout.test.mjs` 新增警告/metadata/防護回歸檢查。未執行 Node/npm/Vite，故**測試狀態待驗證**。本環境 `git ls-remote https://github.com/and14122001/convertx-ios.git` 實際失敗 `Could not resolve host: github.com`；GitHub connector 可讀寫單檔但不能替代完整 checkout/建置。未觸發 Actions 或修改其他 repo/排程。
 - 上游 1.8.0 已提供 headless PDF exporter，但本專案仍固定 1.7.8；避免未經版本相容驗證就混用。來源：https://mlightcad.com/cad-viewer/docs/development/upgrade-guide.html；PDF 重新嵌入 API：https://pdf-lib.js.org/docs/api/classes/pdfdocument
 - 下一步：取得可連網 Linux runner 建立 npm lockfile，執行 `npm test`、`npm run check`、`npm run build`，收集至少兩份授權使用的真實 DWG 比對 PDF；iPhone Safari/PWA 飛航模式驗收尚未完成。
+
+### 2026-11-15 批次：自動排版渲染參數一致性與字型上游核對
+- 重新讀取最新 main.ts、smart-layout.mjs、測試、package.json 與本文件，查固定版 v1.7.8 上游 `AcApPdfConvertor.ts`、`AcApPdfGlyphProvider.ts`、`index.ts`。確認官方 convert 管線使用 `createViewerPdfGlyphProvider()`，但 **該函式未從 package index.ts 公開匯出**。不得臆測可由 `@mlightcad/cad-pdf-plugin` 直接 import；目前直接 renderer 缺 glyphProvider，TEXT/MTEXT/SHAPE 保真仍為 P0 阻塞。可評估經公開 API 封裝、核對實際發行檔 deep import 或升級同一套版本，必須先建置驗證。
+- 修正自動模式第一輪 PDF export 漏傳 `ltscale`、`celtscale`、`showLineWeight`，避免自動與手動輸出線型/線寬不一致；自動紙張時停用手動方向控制，避免 UI 誤導。新增靜態回歸案例。
+- 尚未執行完整 npm test/tsc/Vite、真實 DWG 或 Safari 飛航模式；不能宣稱保真或最終驗收。未觸發 Actions，未修改其他 repo 或排程。
+- 上游原始碼：https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts 、https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfGlyphProvider.ts 、https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/index.ts
