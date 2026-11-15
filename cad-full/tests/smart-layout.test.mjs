@@ -60,3 +60,12 @@ test('PDF composition retains filename metadata and nonempty output guard',()=>{
  assert.match(main,/if\(bytes\.byteLength===0\)/)
  assert.match(main,/const measuredBytes=autoMeasurement/)
 })
+
+test('auto PDF render uses identical lineweight and linetype scale as manual export',()=>{
+ assert.match(main,/paper:'extents',marginMm:0,background:'none',fit:'extents',layouts:'current',ltscale:db\.ltscale,celtscale:db\.celtscale,showLineWeight:!!db\.lwdisplay/)
+ assert.match(main,/showLineWeight:!!db\.lwdisplay/)
+})
+test('auto mode does not offer a contradictory manual orientation control',()=>{
+ assert.match(main,/paperOrientation\.disabled=auto\|\|paperChoice\.value==='extents'/)
+ assert.match(main,/paperChoice\.addEventListener\('change',updatePaperControls\)/)
+})
