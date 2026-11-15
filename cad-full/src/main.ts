@@ -27,7 +27,16 @@ const layoutAdvice=document.getElementById('layout-advice') as HTMLElement
 const paperOrientation=document.getElementById('paper-orientation') as HTMLSelectElement
 const customWidth=document.getElementById('paper-width') as HTMLInputElement
 const customHeight=document.getElementById('paper-height') as HTMLInputElement
-paperChoice.addEventListener('change',()=>{const custom=paperChoice.value==='custom';customWidth.disabled=!custom;customHeight.disabled=!custom})
+function updatePaperControls(){
+ const auto=paperChoice.value==='auto'
+ const custom=paperChoice.value==='custom'
+ paperOrientation.disabled=auto||paperChoice.value==='extents'
+ customWidth.disabled=!custom
+ customHeight.disabled=!custom
+ layoutAdvice.textContent=auto?'自動方向與紙張由渲染頁面比例決定；原始 CAD 單位未推定。':'手動紙張；縮放比例不等於 1:N 工程比例。'
+}
+paperChoice.addEventListener('change',updatePaperControls)
+updatePaperControls()
 function resetFileState(){documentReady=false;lastPreflight='';exportButton.disabled=true;layoutAdvice.textContent='尚未分析圖面';unsupportedNotice.textContent='尚未檢查圖面保真風險'}
 function message(s:string){status.textContent=s}
 async function initialize(){if(initialized)return
