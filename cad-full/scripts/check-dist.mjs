@@ -15,8 +15,8 @@ else{
   const names=readdirSync(join(root,'assets'))
   const js=names.filter(n=>/\.js$/.test(n)&&n!=='mtext-renderer-worker.js'&&n!=='libredwg-parser-worker.js')
   if(js.length===0){console.error('FAIL: no application JavaScript bundle');failed=true}
-  const pdfBundle=js.some(n=>readFileSync(join(root,'assets',n),'utf8').includes('cpdf'))
-  console.log(pdfBundle?'PASS':'FAIL','PDF export command in bundled JavaScript')
+  const pdfBundle=js.some(n=>{const source=readFileSync(join(root,'assets',n),'utf8');return source.includes('application/pdf')&&source.includes('createObjectURL')})
+  console.log(pdfBundle?'PASS':'FAIL','PDF Blob download path in bundled JavaScript')
   if(!pdfBundle)failed=true
 }
 // A GPL DWG parser is bundled; do not ship a Pages distribution without
