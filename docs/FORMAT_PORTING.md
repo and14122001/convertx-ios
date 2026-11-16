@@ -469,3 +469,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 修正 Service Worker updatefound 註冊時間競態；顯示新版 waiting 與資產安裝失敗，提示關閉舊分頁；未強制 skipWaiting，避免跨版本 Worker/WASM 混用。
 - 執行 `npm ci --ignore-scripts --no-audit --no-fund`；`node scripts/profile-local-dwg.mjs <local.dwg>`、加 `--preflight`；`npm run build`（Node tests + tsc + Vite + offline manifest/check-dist）。新增 5 個行為測試：來源與樣式分離、unused style、BLOCK/ATTRIB 去重、DIMTXSTY handle、缺字型禁止進入下游／成功保留 model identity。
 - 本機 Chromium 真正啟動失敗：`socket() failed: Operation not permitted`。不將 Node 回歸冒充瀏覽器、iPhone、離線下載驗收。原 DWG／錄影／原始診斷內容未加入公開 GitHub。
+
+### 2026-11-16 修正缺字型阻止整張圖預覽的回歸
+- 使用者 iPhone 證據顯示 7.1 秒完成解析、7.7 秒開啟結束，但 b7770e2 因字型預檢直接 throw，導致 Failed to Open File。這是本專案引入的錯誤產品行為，並非必須缺字就不能顯示幾何。
+- 字型預檢改為非阻斷診斷，原樣回傳 parsed model；缺字／未解析樣式警告與 PDF 保真閘門分離。PDF 仍要求原圖字型，不以可能缺字或替代的預覽宣稱保真。
+- openDocument 開啟 progressiveRendering，移除開檔後的 waitUntilIdle 強制等待／失效處理；畫面允許背景漸進繪製，僅 PDF 匯出保留 idle 檢查。未載入第三方字型，不自動假設原字型。
+- 真實原檔 `node scripts/profile-local-dwg.mjs <local DWG> --preflight` 成功越過缺字診斷並建立 DB：parse 7,287 ms、parse+convert 7,947 ms、1,273 blocks、41,207 entities；10 缺字型／14 未解析樣式仍回報。Linux Node 計時，不冒充 Safari 畫面或 PDF 驗收。LibreDWG code 76 未解決。
+- `npm ci --ignore-scripts --no-audit --no-fund`、`npm run build` 通過：85 tests / 18 files、tsc、Vite、offline/dist checks。改寫缺字型回歸測試，要求 missing fonts 不丟棄 parsed model、診斷可供匯出檢查。
+- 上游缺字預覽行為核對：https://github.com/mlightcad/cad-viewer/wiki/FAQ 。本批修復的是預覽被本專案封鎖，並非已驗證所有幾何／文字均正確呈現。

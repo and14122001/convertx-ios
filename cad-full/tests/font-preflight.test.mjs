@@ -21,9 +21,9 @@ test('DIMTXSTY numeric handle resolves to actual primary and big font',()=>{
  const r=inspectFontRequirements(model([style('DIMTEXT','romans','chineset','28D')],[{type:'DIMENSION',styleName:'DIM'}],[],[{name:'DIM',DIMTXSTY:653}]))
  assert.deepEqual(r.requirements.map(f=>f.key),['romans','chineset'])
 })
-test('missing font fails BEFORE downstream conversion, all-present preserves parsed model identity',async()=>{
- const parsed={model:model([style('STANDARD','simplex')],[{type:'TEXT'}]),data:{unknownEntityCount:0}};let converted=0;let report
- await assert.rejects(async()=>{await preflightParsedDrawing(parsed,async()=>{},()=>false,(r,m)=>report={r,m});converted++},/停止於預覽之前/)
- assert.equal(converted,0);assert.equal(report.m.length,1)
+test('missing fonts preserve parsed drawing for geometry preview; diagnostics remain available for PDF gate',async()=>{
+ const parsed={model:model([style('STANDARD','simplex')],[{type:'TEXT'}]),data:{unknownEntityCount:0}};let report
+ const result=await preflightParsedDrawing(parsed,async()=>{},()=>false,(r,m)=>report={r,m})
+ assert.equal(result,parsed);assert.equal(report.m.length,1)
  assert.equal(await preflightParsedDrawing(parsed,async names=>assert.deepEqual(names,['simplex']),()=>true,()=>{}),parsed)
 })

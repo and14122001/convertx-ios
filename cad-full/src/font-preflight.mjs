@@ -46,15 +46,15 @@ export function inspectFontRequirements(model){
 }
 export function formatFontPreflight(report,missing){
  const lines=missing.map(f=>`${f.name}（${f.styles.length} 個樣式）`)
- return `字型預檢：缺少 ${missing.length} 個原圖字型，已停止於預覽之前。\n${lines.join('、')}\n請載入原圖 SHX／TTF，再重新選取 DWG。未自動替代字型。${report.unresolved.length?'\n另有 '+report.unresolved.length+' 個樣式無法解析字型來源。':''}`
+ return `字型預檢：缺少 ${missing.length} 個原圖字型；圖形繼續預覽，文字可能缺漏或替代，未驗證保真。\n${lines.join('、')}\n請載入原圖 SHX／TTF，再重新選取 DWG。未自動替代字型。${report.unresolved.length?'\n另有 '+report.unresolved.length+' 個樣式無法解析字型來源。':''}`
 }
-/** Same gate used by the browser converter and the local real-DWG regression. */
+/** Preview diagnostics only. Missing fonts must never reject a decoded drawing. */
 export async function preflightParsedDrawing(result,loadFonts,isAvailable,onReport){
  if(!result.model)return result
  const report=inspectFontRequirements(result.model)
  await loadFonts(report.requirements.map(f=>f.key))
  const missing=report.requirements.filter(f=>!isAvailable(f.key))
  onReport(report,missing)
- if(missing.length)throw new Error(formatFontPreflight(report,missing))
+
  return result
 }
