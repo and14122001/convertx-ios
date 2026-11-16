@@ -27,13 +27,14 @@ test('PDF filename strips only final CAD extension',()=>{
  assert.equal('plan.v2.dwg'.replace(/\.(dwg|dxf)$/i,'')+'.pdf','plan.v2.pdf')
 })
 
-test('paper presets and missing glyph provider warning are explicit',()=>{
+test('paper presets and vector glyph provider are wired',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8')
  assert.match(html,/id="paper-choice"/)
  assert.match(source,/resolvePaper\(paperChoice\.value,paperOrientation\.value/)
  assert.match(html,/value="a0"/)
  assert.match(html,/value="ansi-e"/)
  assert.match(html,/value="arch-e"/)
- assert.match(source,/缺少 PDF glyphProvider/)
+ assert.match(source,/createViewerPdfGlyphProvider/)
+ assert.match(source,/glyphFailures.length/)
  assert.match(source,/fontMapping: AcApSettingManager\.instance\.fontMapping/)
 })

@@ -1,3 +1,7 @@
+import {openVerifiedDocument} from './open-document.mjs'
+import {FontManager} from '@mlightcad/mtext-renderer'
+import {AcTrMTextRenderer} from '@mlightcad/three-renderer'
+import {createViewerPdfGlyphProvider} from './pdf-glyph-provider'
 import {recommendLayout} from './smart-layout.mjs'
 import {uniformPdfPlacement,verifyPdfPageGeometry} from './pdf-layout-geometry.mjs'
 import {PDFDocument} from 'pdf-lib'
@@ -5,7 +9,7 @@ import {resolvePaper} from './paper-sizes.mjs'
 import {inspectPdfBytes} from './pdf-audit.mjs'
 import {inspectDwgHeader,parseUnitChoice} from './dwg-preflight.mjs'
 import { validateCadFile } from './file-validation'
-import { AcApDocManager, AcApSettingManager } from '@mlightcad/cad-simple-viewer'
+import { AcApDocManager, AcApSettingManager, AcApFontUtil } from '@mlightcad/cad-simple-viewer'
 import { AcDbDatabaseConverterManager, AcDbFileType } from '@mlightcad/data-model'
 import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter'
 import { registerLazyPdfPlugin } from '@mlightcad/cad-pdf-plugin/register'
@@ -14,6 +18,7 @@ const status=document.getElementById('status') as HTMLElement
 const fileInput=document.getElementById('file') as HTMLInputElement
 const exportButton=document.getElementById('export') as HTMLButtonElement
 const workerUrls={mtextRender:'./assets/mtext-renderer-worker.js',dwgParser:'./assets/libredwg-parser-worker.js'}
+let fontLoading=false
 let initialized=false
 let loading=false
 let documentReady=false
@@ -44,20 +49,23 @@ async function initialize(){if(initialized)return
   AcDbDatabaseConverterManager.instance.register(AcDbFileType.DWG,new AcDbLibreDwgConverter({convertByEntityType:false,useWorker:true,parserWorkerUrl:workerUrls.dwgParser}))
   const ready=await AcApDocManager.checkWebworkerReadiness(workerUrls)
   if(!ready)throw new Error('DWG/文字 Worker 資產未就緒，請確認 WASM 與 Worker 已部署')
-  AcApDocManager.createInstance({container:document.getElementById('canvas')!,busyIndicatorHost:document.getElementById('viewer')!,autoResize:true,webworkerFileUrls:workerUrls})
+  AcApDocManager.createInstance({baseUrl:new URL('./',location.href).href,container:document.getElementById('canvas')!,busyIndicatorHost:document.getElementById('viewer')!,autoResize:true,webworkerFileUrls:workerUrls})
   registerLazyPdfPlugin(AcApDocManager.instance.pluginManager)
+  FontManager.instance.enableFontCache=true
   initialized=true
 }
-fileInput.addEventListener('change',async()=>{if(loading)return;loading=true;resetFileState();const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';await AcApDocManager.instance.openDocument(file.name,bytes,{minimumChunkSize:1000});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
+fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading)return;loading=true;resetFileState();const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:1000});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
 unsupportedNotice.textContent='保真風險：目前無法完整確認 DWG 中 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT 是否遺失。匯出前請核對原始 DWG；PDF 輸出成功不代表圖元完整。';message('圖面已載入。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。')}finally{loading=false}})
 exportButton.addEventListener('click',async()=>{
- if(!initialized||!documentReady||loading||exporting)return
+ if(!initialized||!documentReady||loading||exporting||fontLoading)return
  exporting=true;exportButton.disabled=true
  try{
   const choice=parseUnitChoice(unitChoice.value)
   const db=AcApDocManager.instance.context.doc.database
   // Fixed v1.7.8 PDF renderer: export model space using native vectors.
   // Do not infer INSUNITS, paper scale, external references or font availability.
+  const glyphFailures:string[]=[]
+  const glyphProvider=createViewerPdfGlyphProvider(message=>glyphFailures.push(message))
   const marginMm=Number(marginChoice.value)
   if(!Number.isFinite(marginMm)||marginMm<0||marginMm>100)throw new Error('留白需為 0–100 mm')
   let selectedPaper: 'extents' | {widthMm:number;heightMm:number}=paperChoice.value==='auto' ? 'extents' : resolvePaper(paperChoice.value,paperOrientation.value,customWidth.value,customHeight.value)
@@ -65,7 +73,7 @@ exportButton.addEventListener('click',async()=>{
   let autoMeasurement: Uint8Array | undefined
   if(paperChoice.value==='auto'){
    message('正在依實際可繪圖元測量邊界並推薦紙張…')
-   const measurement=await exportDatabaseToPdf(db,{title:lastFileName,paper:'extents',marginMm:0,background:'none',fit:'extents',layouts:'current',ltscale:db.ltscale,celtscale:db.celtscale,showLineWeight:!!db.lwdisplay,fontMapping:AcApSettingManager.instance.fontMapping})
+   const measurement=await exportDatabaseToPdf(db,{glyphProvider,title:lastFileName,paper:'extents',marginMm:0,background:'none',fit:'extents',layouts:'current',ltscale:db.ltscale,celtscale:db.celtscale,showLineWeight:!!db.lwdisplay,fontMapping:AcApSettingManager.instance.fontMapping})
    autoMeasurement=measurement
    const measuredDoc=await PDFDocument.load(measurement)
    const page=measuredDoc.getPages()[0]
@@ -98,6 +106,7 @@ exportButton.addEventListener('click',async()=>{
    out.drawPage(embedded,placement)
    return dst.save({useObjectStreams:true})
   })() : await exportDatabaseToPdf(db,{
+   glyphProvider,
    title:lastFileName,
    ltscale:db.ltscale,
    celtscale:db.celtscale,
@@ -109,6 +118,10 @@ exportButton.addEventListener('click',async()=>{
    fit:'extents',
    layouts:'current'
   })
+  const missingFonts=Object.keys(FontManager.instance.missedFonts)
+  const unsupportedChars=Object.keys(FontManager.instance.getUnsupportedChar())
+  if(missingFonts.length||unsupportedChars.length)throw new Error('停止下載：缺少字型 '+missingFonts.join(', ')+'；缺字 '+unsupportedChars.join(' ')+'。請載入原圖字型後重新開啟 DWG。')
+  if(glyphFailures.length)throw new Error('停止下載：'+glyphFailures.join('；'))
   const audit=inspectPdfBytes(bytes)
   const verifiedDoc=await PDFDocument.load(bytes)
   if(verifiedDoc.getPageCount()!==1)throw new Error('目前僅支援單頁 PDF 驗收；輸出頁數異常')
@@ -126,7 +139,7 @@ exportButton.addEventListener('click',async()=>{
    link.href=url;link.download=filename;link.rel='noopener'
    document.body.appendChild(link);link.click();link.remove()
   }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
-  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+pageAudit+'；'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；缺少 PDF glyphProvider，TEXT/MTEXT/SHAPE 可能不顯示，未驗證字型、XREF、代理物件、圖元保真及 Safari 下載完成；智慧排版重新嵌入 PDF 後，原 PDF 的可切換圖層可能不保留。')
+  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+pageAudit+'；'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；已接入文字向量管線；缺字與替代字型仍須核對，未驗證字型、XREF、代理物件、圖元保真及 Safari 下載完成；智慧排版重新嵌入 PDF 後，原 PDF 的可切換圖層可能不保留。')
  }catch(e){message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{exporting=false;exportButton.disabled=!documentReady||loading}
 })
@@ -183,4 +196,25 @@ pdfCheck.addEventListener('change',async()=>{
   message('已檢查 '+file.name+'：PDF '+result.version+'、'+result.byteLength+' bytes；'+result.warnings.join('；')+'。此檢查無法確認檔案由目前 DWG 匯出。')
  }catch(e){message('PDF 基本檢查失敗：'+(e instanceof Error?e.message:String(e)))}
  finally{pdfCheck.value=''}
+})
+
+const fontInput=document.getElementById('font-file') as HTMLInputElement
+fontInput.addEventListener('change',async()=>{
+ if(loading||exporting||fontLoading)return
+ const files=Array.from(fontInput.files??[])
+ if(!files.length)return
+ fontLoading=true;resetFileState()
+ try{
+  await initialize()
+  for(const file of files){
+   if(!/\.(shx|ttf|otf|woff)$/i.test(file.name))throw new Error('不支援的字型格式：'+file.name)
+   const encoding=(document.getElementById('font-encoding') as HTMLSelectElement).value
+   const result=await AcApFontUtil.cacheFont(file,undefined,undefined,encoding||undefined)
+   if(result.status!=='Success')throw new Error('字型載入失敗：'+file.name+' '+result.status)
+   await AcTrMTextRenderer.getInstance().loadFonts([result.fontName],{scope:'all'})
+  }
+  fileInput.value=''
+  message('字型已載入本機快取，請重新選擇 DWG。瀏覽器清除資料可能移除字型，仍須離線重啟驗證。')
+ }catch(e){message('字型載入失敗：'+String(e))}
+ finally{fontLoading=false;fontInput.value=''}
 })

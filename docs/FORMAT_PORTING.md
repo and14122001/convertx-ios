@@ -428,3 +428,17 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 修復 vite-plugin-static-copy 4 的路徑保留行為：`rename.stripBase:true`，Worker/WASM 現在確實在 dist/assets 頂層。
 - `npm run build` 已完整通過：13 個測試檔、TypeScript、Vite 7.3.8、SW manifest、dist 檢查。建置資產 21,812,244 bytes，LibreDWG WASM 10,882,182 bytes。
 - 不代表 DWG 圖元保真、字型、GPL 對應源碼或 iPhone 飛航模式通過。未觸發 Actions，未改既有排程。
+
+### 2026-11-16 Work 實際開發批次 B
+- 批次 A 已提交 GitHub：`04a735276b4b9296bb377d8fcfd51ba62eb6fc43`。一般 git push 因無 HTTPS 寫入憑證失敗，改用已連接 GitHub API，樹雜湊與本機提交相同；非僅本機未上傳。
+- 按上游固定 v1.7.8 MIT 原始碼接入 glyphProvider（TEXT/MTEXT/SHAPE 向量），保留 MIT notice。新增純幾何測試：插入點／世界矩陣／inline color／SHX 線段。字形失敗、非空文字無幾何、已知缺字型／缺字會阻止下載。
+- 透過公開 AcApFontUtil.cacheFont 新增 SHX/TTF/OTF/WOFF 本機載入與 IndexedDB 快取；可人工指定 SHX 編碼，載入後要求重新開啟原 DWG，避免舊字形仍在畫面。
+- 覆寫 viewer CDN baseUrl 為同源，部署空 fonts/fonts.json；未重發上游不明授權字型。字型匯入與 Worker 同步尚待瀏覽器實測，不宣稱完成。
+- `npm run build` 再次通過：15 個測試檔、tsc、Vite、完整離線資產檢查。詳見 docs/DWG_SOURCE_AUDIT.md 與 docs/CAD_OPEN_SOURCE_INTEGRATION.md。
+- 真實 LibreDWG 測試檔（同一上游，不滿足兩個獨立工程來源）實跑 `node scripts/probe-dwg.mjs <Arc.dwg> <Line.dwg>`：Arc 173717 bytes → 1 AcDbArc → PDF 1251 bytes；Line 174005 bytes → 1 AcDbLine → PDF 903 bytes；兩者 A4 MediaBox 595.2755905511812 × 841.8897637795277 pt。這是本機 WASM→DB→PDF smoke，不是參考 PDF 保真驗收。
+- 額外 example_2000/example_2018 均解析 62 個模型圖元，但原生解析器報 code 64/68（VALUEOUTOFBOUNDS；68 另含 UNHANDLEDCLASS），不能列為完整保真通過。仍需把解析警告可靠傳到使用者介面，避免只記 console。
+- Chromium 真正啟動嘗試失敗：`socket() failed: Operation not permitted`，沒有到達網頁或下載階段；不能宣稱瀏覽器／離線重啟已測通。iPhone Safari/PWA 飛航模式、兩份真實工程圖與參考 PDF、布局／BLOCK／尺寸／HATCH 完整保真及完整 GPL source bundle 仍是正式驗收阻塞。
+
+- 實讀固定版 openDocument 型別與實作：失敗可能 resolve(false)，舊程式仍會啟用匯出，可能輸出前一張圖。新增 openVerifiedDocument 明確要求 true；3 個執行式測試涵蓋 false／throw／原始 bytes 傳遞。
+
+- 最終完整建置：73 項 Node 測試／15 個測試檔全部通過，TypeScript 與 Vite 通過，9 個離線資產合計 21,854,187 bytes。`CAD_RELEASE=1 npm run check:dist` 實際失敗於缺少 DWG GPL distribution document，正式部署仍被阻擋。手動 CI 安裝改成 npm ci（未觸發 workflow，未變更任何排程）。

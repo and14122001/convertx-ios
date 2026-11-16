@@ -30,3 +30,15 @@
 - https://github.com/mlightcad/cad-viewer
 
 **本文件為架構稽核及整合閘門，不代表候選程式碼已被移植，也不代表 DWG→PDF 驗收通過。**
+
+## 2026-11-16 實際 checkout 比對（取代僅 README 判斷）
+
+| 專案／固定 SHA | 實讀程式 | 實際結論 |
+|---|---|---|
+| CadFlux `4efa6712040d0ff2486e3c61f1766ce627fc67c8` | `packages/renderer-pdf/src/node.ts` | 目前另有 `DrawingDocument → jsPDF` 的 Node 向量輸出；依賴 `node:fs/promises`、內建 A0–A4，文字使用 `pdf.text`。不能直接當成 Safari/SHX 保真替代，先不移植。GPL-3.0-or-later。 |
+| flyfish `0ce90d08bbf96aa780676ffeb81e0da12c575097` | `src/loaders/dwg/DwgLoader.ts`、`src/core/shx.ts` | 預設僅允許 DWG Worker 路徑，暴露 preload/terminateWorker 與自訂 workerUrl/workerFactory；非現有 PDF 管線的直接替代。AGPL-3.0-only，不複製程式。 |
+| MLightCAD v1.7.8 `c6c14f90e46bedbe9d6e6cf7faa7851d3f3490ad` | `AcApPdfConvertor.ts`、`AcApPdfGlyphProvider.ts`、`AcApFontUtil.ts`、`AcApDocManager.ts` | glyph factory 未公開 export，採 MIT 原始碼移植並保留授權；加上失敗回報，分離字形幾何以實測變換／顏色／SHX 線段。`AcApFontUtil.cacheFont` 為公開本機字型 API。 |
+
+- 上游 viewer 預設 `baseUrl` 指向 jsDelivr cad-data，會下載字型。ConvertX 已覆寫為同源，部署空字型目錄並讓使用者載入有權使用的原圖字型；不將不明授權的 cad-data 字型重發。
+- 未升級到 1.8+、未替換 PDF 幾何模組。未知 SHX 編碼維持未指定，不自動推定 Big5/GBK。
+- 本批文字 API／型別／bundle 建置通過，字形幾何單元測試通過；真實中文字形與 Safari 字型快取仍未驗收。

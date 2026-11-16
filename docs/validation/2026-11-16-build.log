@@ -1,0 +1,268 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> convertx-cad-dwg-pdf@0.1.0 build
+> npm run test && tsc --noEmit && vite build && npm run offline:generate && npm run check:dist
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> convertx-cad-dwg-pdf@0.1.0 test
+> node scripts/run-tests.mjs
+
+
+=== cad-fidelity-matrix.test.mjs ===
+✔ DWG to PDF acceptance matrix requires two real DWG references (0.970364ms)
+✔ DWG fidelity gate explicitly covers critical CAD entities and offline download (0.196517ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7.951105
+
+=== dist-pdf-gate.test.mjs ===
+✔ production bundle gate checks current PDF Blob path, not removed cpdf command (0.76884ms)
+✔ distribution still requires worker WASM and full offline manifest (0.168534ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5.980072
+
+=== dwg-preflight.test.mjs ===
+✔ known DWG version without inventing units (0.854108ms)
+✔ unknown DWG version stays unknown (0.165781ms)
+✔ truncated and malformed DWG rejected (0.359752ms)
+✔ unknown units cannot claim measurable PDF (0.189336ms)
+✔ user-selected units do not claim verified scale (0.105159ms)
+✔ invalid unit rejected (0.153762ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8.330798
+
+=== file-validation.test.mjs ===
+✔ DWG AC1032 accepted (1.015422ms)
+✔ DWG incorrect magic rejected (0.419422ms)
+✔ DWG truncated rejected (0.133302ms)
+✔ ASCII DXF accepted (0.184298ms)
+✔ Binary DXF accepted (0.163206ms)
+✔ empty rejected (0.113ms)
+✔ unknown extension rejected (0.188484ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9.235583
+
+=== license-release.test.mjs ===
+✔ release requires GPL license and corresponding-source document (92.89045ms)
+✔ development smoke check does not enforce release-only GPL document paths (75.03282ms)
+✔ release rejects placeholder GPL license and short source offer (62.105665ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 236.386026
+
+=== mobile-layout.test.mjs ===
+✔ mobile workspace uses viewport-aware flexible layout without hardcoded header subtraction (0.873188ms)
+✔ file chooser remains visible and usable in narrow viewport (0.204218ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5.784247
+
+=== offline-sw.test.mjs ===
+✔ service worker precaches HTML and DWG WASM (81.344721ms)
+✔ cache version changes with bundle contents (154.658076ms)
+✔ repeat build produces identical cache version (132.744576ms)
+✔ generator rejects missing entry HTML (62.04869ms)
+✔ service worker must not match unrelated caches (62.900756ms)
+✔ service worker only intercepts requests inside its registration scope (65.650885ms)
+✔ failed installation cleans incomplete cache (61.208092ms)
+✔ updates do not forcibly take over active CAD sessions (65.8338ms)
+✔ distribution check rejects files missing from offline manifest (116.145364ms)
+✔ distribution check reports missing assets directory without crashing (123.156211ms)
+✔ offline manifest includes itself and lazy-loaded PDF chunk (57.957207ms)
+✔ offline manifest is deterministic across repeat builds (167.92404ms)
+✔ distribution check rejects mismatched JSON manifest cache version (123.20888ms)
+✔ distribution check accepts matching complete offline assets (116.024357ms)
+✔ nested files ending with sw.js remain in offline manifest (61.843361ms)
+✔ distribution check rejects duplicate offline asset entries (140.429174ms)
+✔ service worker rejects cross-origin requests even if URL has matching text prefix (74.434997ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1675.448607
+
+=== open-document.test.mjs ===
+✔ false open result rejects stale document export (4.085764ms)
+✔ open exception is preserved (0.222386ms)
+✔ successful open forwards exact local bytes and options (0.220683ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12.088868
+
+=== paper-sizes.test.mjs ===
+✔ standard paper dimensions (1.681807ms)
+✔ orientation and extents (0.228765ms)
+✔ invalid custom sizes and unknown presets rejected (0.295286ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7.706106
+
+=== pdf-audit.test.mjs ===
+✔ PDF basic signature and EOF accepted without claiming page fidelity (1.062162ms)
+✔ empty and truncated PDF rejected (0.459753ms)
+✔ wrong signature rejected (0.256176ms)
+✔ PDF 2.0 recognized (0.278871ms)
+✔ trailing garbage after EOF rejected (0.190187ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8.274924
+
+=== pdf-dispatch.test.mjs ===
+✔ PDF export uses native renderer and active database, not command dispatch (0.986488ms)
+✔ PDF export validates bytes before browser download (0.15254ms)
+✔ PDF export does not silently assert fidelity or paper scale (0.142595ms)
+✔ PDF renderer is pinned to viewer release (0.319762ms)
+✔ PDF filename strips only final CAD extension (0.25179ms)
+✔ paper presets and vector glyph provider are wired (0.304309ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9.335554
+
+=== pdf-glyph-geometry.test.mjs ===
+✔ glyph triangles preserve world transform, insertion offset and inline color (1.594555ms)
+✔ SHX line segments remain vector polylines, not filled triangles (0.219291ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8.272115
+
+=== pdf-layout-geometry.test.mjs ===
+✔ vector PDF placement fits inside margins without nonuniform distortion (0.910714ms)
+✔ invalid page geometry and excessive margins fail closed (0.330248ms)
+✔ PDF MediaBox accepts exact A4 and rejects paper mismatch (0.178539ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6.679427
+
+=== pdf-vector-composition.test.mjs ===
+✔ real pdf-lib embeds native vector page, survives save/reload with A4 margins (23.890933ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29.45665
+
+=== smart-layout.test.mjs ===
+✔ automatic landscape and portrait recommendation from drawable geometry (1.21317ms)
+✔ automatic recommendation never infers CAD unit (0.323168ms)
+✔ default margin and automatic mode are visible (0.184568ms)
+✔ invalid geometry and margin rejected (0.250758ms)
+✔ vector composition supports uniform upscaling and 10mm inset (0.25227ms)
+✔ generated PDF page dimensions are checked before download (0.13254ms)
+✔ rendered page is not falsely called precise CAD geometry (0.195285ms)
+✔ unverified DWG fidelity is prominently disclosed before PDF download (0.145369ms)
+✔ PDF composition retains filename metadata and nonempty output guard (0.149355ms)
+✔ auto PDF render uses identical lineweight and linetype scale as manual export (0.265671ms)
+✔ auto mode does not offer a contradictory manual orientation control (0.135504ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10.705971
+PASS: all 15 test files completed
+vite v7.3.8 building client environment for production...
+transforming...
+✓ 1141 modules transformed.
+rendering chunks...
+computing gzip size...
+[vite-plugin-static-copy] Copied 3 items.
+dist/index.html                             7.31 kB │ gzip:     3.02 kB
+dist/assets/cad-pdf-plugin-CAq2-aMp.js  3,359.81 kB │ gzip:   860.75 kB
+dist/assets/index-BWEsPkyq.js           5,931.99 kB │ gzip: 1,857.71 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 12.57s
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> convertx-cad-dwg-pdf@0.1.0 offline:generate
+> node scripts/generate-offline-sw.mjs
+
+Offline manifest: 9 files, 21854187 bytes
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> convertx-cad-dwg-pdf@0.1.0 check:dist
+> node scripts/check-dist.mjs
+
+PASS sw.js 1324 bytes
+PASS index.html 7309 bytes
+PASS assets/mtext-renderer-worker.js 1431524 bytes
+PASS assets/libredwg-parser-worker.js 205158 bytes
+PASS assets/libredwg-web.wasm 10882182 bytes
+PASS PDF Blob download path in bundled JavaScript
+PASS: offline manifest covers all distribution files
+Static asset smoke check passed; browser DWG/PDF functionality remains unverified

@@ -1,0 +1,14 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> convertx-cad-dwg-pdf@0.1.0 check:dist
+> node scripts/check-dist.mjs
+
+PASS sw.js 1324 bytes
+PASS index.html 7309 bytes
+PASS assets/mtext-renderer-worker.js 1431524 bytes
+PASS assets/libredwg-parser-worker.js 205158 bytes
+PASS assets/libredwg-web.wasm 10882182 bytes
+PASS PDF Blob download path in bundled JavaScript
+FAIL: missing DWG GPL distribution document
+PASS: offline manifest covers all distribution files
+CAD offline bundle incomplete; deployment must not proceed
