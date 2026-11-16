@@ -1,4 +1,6 @@
 import {fontKey} from './font-preflight.mjs'
+export const AUTO_FONT='convertx-noto-tc'
+export const permitsSubstitution=mode=>mode==='substitute'||mode==='auto'
 export function cleanMappings(value){
  const out=Object.create(null)
  if(!value||typeof value!=='object'||Array.isArray(value))return out
@@ -13,7 +15,7 @@ export function resolveFont(name,mapping,isLoaded,mode='original'){
  if(isLoaded(name))return name
  const key=fontKey(name)
  if(isLoaded(key))return key
- const target=mode==='substitute'?mapping[key]:undefined
+ const target=permitsSubstitution(mode)?(mapping[key]||(mode==='auto'?AUTO_FONT:undefined)):undefined
  if(target&&isLoaded(target))return target
  throw new Error('缺少可用字型：'+name+'；請載入原字型或明確指定已載入的替代字型')
 }
@@ -30,12 +32,14 @@ export function requireMappedFonts(names,mapping,isLoaded,mode){
 }
 /** Apply explicit replacements only to this in-memory decoded model; never write the source file. */
 export function applyStyleMappings(model,mapping,isLoaded,mode){
- if(mode!=='substitute')return
+ if(!permitsSubstitution(mode))return
  for(const style of model.tables?.STYLE?.entries??[]){
+  // SHAPE codes are symbols, not Unicode text: never replace shape-file styles.
+  if(style.standardFlag&1)continue
   for(const field of ['font','bigFont','extendedFont']){
-   const name=style[field],target=mapping[fontKey(name)]
-   if(name&&target&&isLoaded(target)&&!isLoaded(name))style[field]=target
+   const name=style[field],target=mapping[fontKey(name)]||(mode==='auto'?AUTO_FONT:undefined)
+   if(name&&target&&isLoaded(target)&&!isLoaded(name)&&!isLoaded(fontKey(name)))style[field]=target
   }
-  if(!style.font&&!style.extendedFont){const target=mapping[fontKey(style.name)];if(target&&isLoaded(target))style.font=target}
+  if(!style.font&&!style.extendedFont){const target=mapping[fontKey(style.name)]||(mode==='auto'?AUTO_FONT:undefined);if(target&&isLoaded(target))style.font=target}
  }
 }

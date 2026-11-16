@@ -492,3 +492,20 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - `40cf2ba` 的 GitHub Actions／Pages 發佈成功，但雲端瀏覽器實際初次開啟發現字型清單請求 `/cad-test/fonts.json`（回傳 HTML），正確資產位於 `/cad-test/fonts/fonts.json`。
 - 修正 font settings 的 FontManager baseUrl 為同源 `./fonts/`，補上部署目錄回歸測試。這是執行時驗證發現的問題，先前 build 成功不代表此 UI 已驗收。
 - 雲端選檔測試發生工具逾時並失去分頁，未取得 TTC 匯入或 PDF 下載結果，不記為通過。
+
+### 2026-11-16 自動離線替代字型庫
+- 使用者實測 2.6 秒開啟後，PDF 被 `simplex.shx` 阻擋，明確要求自動替代。本批預設新增「自動替代」模式；原字型模式、手動對應模式仍可選擇。優先實際已載入的原字型，其次使用者對應，最後內建 Noto Sans TC。不把替代字型註冊為 simplex 原字型，不猜測字寬完全相同。
+- 採用 notofonts/noto-cjk `Sans2.004` commit `523d033d6cb47f4a80c58a35753646f5c3608a78` 的 `Sans/SubsetOTF/TC/NotoSansTC-Regular.otf`，5,683,368 bytes，SHA256 `5bab0cb3c1cf89dde07c4a95a4054b195afbcfe784d69d75c340780712237537`。原樣使用 OFL 1.1 字型，授權隨站提供 `legal/NOTO-OFL.txt`；來源、作者資訊保留於原始字型與本文件。未散布來源不明的 AutoCAD SHX 或 Microsoft 字型。
+- `npm run fonts:prepare` 在建置時從固定 upstream commit 下載並驗證 SHA256，快取檔有效時不下載；校驗或授權缺失即阻止建置。正式瀏覽器只讀同源 `/fonts/`，不向 Google/CDN 發送 CAD／文字；字型自動納入 Service Worker manifest。新增後完整 runtime 約 27.56 MB（14 assets），首次連網須等待快取完成；不要求每次轉換連網。
+- 開圖時載入主執行緒及文字 Worker 的替代字型；DWG STYLE 主字型／bigFont／未知來源樣式的替代保留於本機診斷，PDF glyph provider 同樣處理 inline MTEXT 字型。未知來源樣式的選擇是明示的替代策略，不是對原圖字型的判定。手動對應到不存在字型仍報錯，避免忽略使用者指定。
+- SHAPE 的數值符號不是 Unicode 文字，不自動替換 `standardFlag & 1` 的 shape-file styles。SHAPE 字型缺失或無向量輸出會停止 PDF，避免工程符號變成無關文字。依 Autodesk STYLE DXF group 70 定義。
+- 自動／手動替代 PDF 均加可見英文警語、`-substituted.pdf` 名稱及 Subject 對應資訊；原字型模式仍嚴格。未支援字元、字形產生失敗仍停止下載。Noto 台灣字集不保證涵蓋所有簡體、生僻字、SHX 私用編碼或符號。
+- 實跑 `npm ci --ignore-scripts --no-audit --no-fund`、`npm run build`：96 Node tests / 21 files、TypeScript、Vite、offline manifest/check-dist 通過。新增實際字型測試經既有 FontManager 載入 OTF，驗證 `ABC123臺灣醫療氣體平面圖±°Ø` 均有正字寬及非空向量幾何。測試僅模擬網路輸送／Node 缺少的 ProgressEvent，沒有模擬字型解析或向量生成。
+- 原始 DWG 本機執行 `node cad-full/scripts/profile-local-dwg.mjs <local.dwg> --auto-font`：10 個字型需求、14 個未知樣式，24 個替代決策；成功建立 1,273 blocks / 41,207 entities。Linux parse 12,571 ms、parse+convert 13,389 ms，不是 iPhone 性能。LibreDWG code 76 仍存在，不能據此宣稱圖元完整／PDF 保真。
+- 開發測試曾因 Node fetch mock 未處理 Request、缺少 ProgressEvent、測試誤用 getWidth() 而失敗；修正測試為實際 API `.width`／`.toGeometry()` 後通過。原字型缺少時的替代行為已驗證，Safari 飛航模式、下載及參考 PDF 視覺比較仍待驗收。
+
+來源：
+- https://github.com/notofonts/noto-cjk/tree/523d033d6cb47f4a80c58a35753646f5c3608a78
+- https://github.com/notofonts/noto-cjk/blob/523d033d6cb47f4a80c58a35753646f5c3608a78/LICENSE
+- https://github.com/mlightcad/cad-viewer/wiki/Self-Hosted-Fonts-and-Templates
+- https://help.autodesk.com/cloudhelp/2020/ENU/AutoCAD-DXF/files/GUID-EF68AF7C-13EF-45A1-8175-ED6CE66C8FC9.htm

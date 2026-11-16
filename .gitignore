@@ -3,3 +3,6 @@ cad-full/dist/
 *.tsbuildinfo
 
 _site/
+
+# Pinned OFL font downloaded and verified by fonts:prepare
+cad-full/public/fonts/NotoSansTC-Regular.otf

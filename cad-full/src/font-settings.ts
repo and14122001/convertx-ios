@@ -21,11 +21,11 @@ export function createFontSettings(onChange:()=>void,notify:(s:string)=>void,isB
  }
  async function refresh(){
   FontManager.instance.baseUrl=new URL('./fonts/',location.href).href
-  const entries=(await FontManager.instance.getAvailableFonts()).filter(e=>e.source==='cache')
+  const entries=(await FontManager.instance.getAvailableFonts())
   target.replaceChildren();list.replaceChildren()
   const names=new Set<string>()
   for(const entry of entries){
-   const row=document.createElement('div');row.textContent=entry.name.join(' / ')+' · '+entry.type+(entry.encoding?' · '+entry.encoding:'');list.append(row)
+   const row=document.createElement('div');row.textContent=(entry.source==='cache'?'匯入：':'內建（隨網站離線快取）：')+entry.name.join(' / ')+' · '+entry.type+(entry.encoding?' · '+entry.encoding:'');list.append(row)
    for(const name of entry.name)if(!names.has(name)){names.add(name);target.add(new Option(name,name))}
   }
   if(!entries.length)list.textContent='尚無本機字型。請先匯入 SHX／TTF／OTF／WOFF／TTC。'
@@ -45,5 +45,5 @@ export function createFontSettings(onChange:()=>void,notify:(s:string)=>void,isB
  let previousMode=mode.value
  mode.onchange=()=>{if(isBusy()){mode.value=previousMode;return}previousMode=mode.value;onChange();notify('輸出模式已變更，請重新開啟 DWG，避免沿用舊字形。')}
  void refresh().catch(e=>notify('無法讀取本機字型庫：'+String(e)))
- return {refresh,get mapping(){return mode.value==='substitute'?mapping:{}},get mode(){return mode.value},suggest(names:string[]){const d=document.getElementById('font-sources')!;d.replaceChildren();for(const n of [...new Set(names)]){const o=document.createElement('option');o.value=n;d.append(o)}}}
+ return {refresh,get mapping(){return mode.value!=='original'?mapping:{}},get mode(){return mode.value},suggest(names:string[]){const d=document.getElementById('font-sources')!;d.replaceChildren();for(const n of [...new Set(names)]){const o=document.createElement('option');o.value=n;d.append(o)}}}
 }

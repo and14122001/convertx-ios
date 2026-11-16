@@ -86,6 +86,7 @@ export function createViewerPdfGlyphProvider(onFailure: (message: string) => voi
     },
     async renderShape(shape: AcGiShapeData, style?: AcGiTextStyle) {
       try {
+        if(style)style=mapGlyphStyle(style,{},(name:string)=>FontManager.instance.isFontLoaded(name),'original')
         const renderer = AcTrMTextRenderer.getInstance()
         const object = (await renderer.asyncRenderShape(
           shape as never,
@@ -96,6 +97,7 @@ export function createViewerPdfGlyphProvider(onFailure: (message: string) => voi
           shape.position?.x ?? 0,
           shape.position?.y ?? 0
         )
+        if(!primitives.triangles.length&&!primitives.polylines.length)onFailure('SHAPE 未產生向量圖形，不能用文字字型替代符號')
         return { primitives, box }
       } catch (error) {
         onFailure('SHAPE 字形產生失敗：' + String(error))

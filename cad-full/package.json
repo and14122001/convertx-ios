@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "npm run fonts:prepare && vite --host",
+    "fonts:prepare": "node scripts/prepare-fonts.mjs",
+    "prebuild": "npm run fonts:prepare",
     "build": "npm run test && tsc --noEmit && vite build && npm run offline:generate && npm run check:dist",
     "preview": "vite preview",
     "check": "tsc --noEmit",

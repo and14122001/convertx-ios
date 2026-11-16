@@ -1,6 +1,6 @@
 import {createFontSettings} from './font-settings'
 import {extractTtcFaces} from './ttc-fonts.mjs'
-import {requireMappedFonts} from './font-policy.mjs'
+import {requireMappedFonts,AUTO_FONT,permitsSubstitution} from './font-policy.mjs'
 import {withDeadline,requireRenderIdle,ExportTimeoutError,missingFontMessage} from './export-lifecycle.mjs'
 import {openVerifiedDocument} from './open-document.mjs'
 import {FontManager} from '@mlightcad/mtext-renderer'
@@ -65,7 +65,7 @@ async function initialize(){if(initialized)return
   FontManager.instance.enableFontCache=true
   initialized=true
 }
-fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading||exportInvalidated)return;loading=true;resetFileState();converter.lastIssue='';converter.fontWarning='';converter.lastReport=undefined;const file=fileInput.files?.[0];if(!file){loading=false;return}fileInput.disabled=true;stopExport.hidden=false;fontDetails.textContent='';const loadStarted=performance.now();const loadTimer=window.setInterval(()=>{loadTiming.textContent='本次開啟已耗時 '+((performance.now()-loadStarted)/1000).toFixed(0)+' 秒；可停止並重新載入'},1000);try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name+'；圖形漸進顯示，缺字型僅警告');const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';converter.mapping=fontSettings.mapping;converter.mode=fontSettings.mode;await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:250,progressiveRendering:true});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
+fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading||exportInvalidated)return;loading=true;resetFileState();converter.lastIssue='';converter.fontWarning='';converter.lastReport=undefined;const file=fileInput.files?.[0];if(!file){loading=false;return}fileInput.disabled=true;stopExport.hidden=false;fontDetails.textContent='';const loadStarted=performance.now();const loadTimer=window.setInterval(()=>{loadTiming.textContent='本次開啟已耗時 '+((performance.now()-loadStarted)/1000).toFixed(0)+' 秒；可停止並重新載入'},1000);try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();if(fontSettings.mode==='auto'){message('載入內建離線替代字型 Noto Sans TC…');await AcTrMTextRenderer.getInstance().loadFonts([AUTO_FONT],{scope:'all'});if(!FontManager.instance.isFontLoaded(AUTO_FONT))throw new Error('內建替代字型尚未載入；請連網完成離線資產快取後重試')}message('正在解析 '+file.name+'；圖形漸進顯示，缺字型僅警告');const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';converter.mapping=fontSettings.mapping;converter.mode=fontSettings.mode;await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:250,progressiveRendering:true});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
 unsupportedNotice.textContent='保真風險：目前無法完整確認 DWG 中 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT 是否遺失。匯出前請核對原始 DWG；PDF 輸出成功不代表圖元完整。';message((converter.fontWarning?converter.fontWarning+'\n':'')+'圖形資料已載入，預覽可能仍在背景繪製。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message(converter.lastIssue||('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。'));if(e instanceof ExportTimeoutError){exportInvalidated=true;fileInput.disabled=true;stopExport.hidden=false}}finally{loading=false;window.clearInterval(loadTimer);loadTiming.textContent='本次開啟耗時 '+((performance.now()-loadStarted)/1000).toFixed(1)+' 秒（此裝置實測）';if(converter.lastReport){fontDetails.textContent=JSON.stringify(converter.lastReport,null,2);fontSettings.suggest([...converter.lastReport.report.requirements.map((f:any)=>f.name),...converter.lastReport.report.unresolved])}fileInput.disabled=exportInvalidated;stopExport.hidden=exportInvalidated?false:true}})
 exportButton.addEventListener('click',async()=>{
  if(!initialized||!documentReady||loading||exporting||fontLoading||exportInvalidated)return
@@ -150,11 +150,11 @@ exportButton.addEventListener('click',async()=>{
   requireMappedFonts(missingFonts,fontSettings.mapping,isLoaded,fontSettings.mode)
   if(unsupportedChars.length)throw new Error('停止下載：仍有無法繪製的字元 '+unsupportedChars.join(' '))
   if(glyphFailures.length)throw new Error('停止下載：'+glyphFailures.join('；'))
-  if(fontSettings.mode==='substitute'){
+  if(permitsSubstitution(fontSettings.mode)){
    const labeled=await PDFDocument.load(bytes)
    const labelFont=await labeled.embedFont(StandardFonts.Helvetica)
    for(const page of labeled.getPages())page.drawText('FONT SUBSTITUTION - VERIFY TEXT AND DIMENSIONS',{x:6,y:6,size:Math.max(1,Math.min(7,(page.getWidth()-12)/210*7)),font:labelFont,color:rgb(0.7,0.1,0.1)})
-   labeled.setSubject('Explicit font substitution; original typography NOT verified. '+JSON.stringify(fontSettings.mapping))
+   labeled.setSubject('Font substitution mode '+fontSettings.mode+'; original typography NOT verified. '+JSON.stringify({manual:fontSettings.mapping,automatic:fontSettings.mode==='auto'?AUTO_FONT:undefined,used:converter.lastReport?.substitutions}))
    bytes=await labeled.save()
   }
   const audit=inspectPdfBytes(bytes)
@@ -166,7 +166,7 @@ exportButton.addEventListener('click',async()=>{
   const actualHeightMm=verifiedPage.getHeight()*25.4/72
   verifyPdfPageGeometry(verifiedPage.getWidth(),verifiedPage.getHeight(),selectedPaper,marginMm)
   const pageAudit='PDF MediaBox '+actualWidthMm.toFixed(1)+'×'+actualHeightMm.toFixed(1)+' mm'
-  const filename=lastFileName.replace(/\.(dwg|dxf)$/i,'')+(fontSettings.mode==='substitute'?'-substituted':'')+'.pdf'
+  const filename=lastFileName.replace(/\.(dwg|dxf)$/i,'')+(permitsSubstitution(fontSettings.mode)?'-substituted':'')+'.pdf'
   const blob=new Blob([new Uint8Array(bytes)],{type:'application/pdf'})
   const url=URL.createObjectURL(blob)
   try{

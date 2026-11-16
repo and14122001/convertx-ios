@@ -52,3 +52,14 @@
 - CadFlux 固定 `4efa6712040d0ff2486e3c61f1766ce627fc67c8` 的 `packages/renderer-pdf/src/node.ts` 是 `DrawingDocument → jsPDF`，帶 Node 檔案輸出；未驗證 SHX/中文保真，不能只為速度整套替換。
 - flyfish 固定 `0ce90d08bbf96aa780676ffeb81e0da12c575097` 的 `DwgLoader.ts` 提供 `preload` / `terminateWorker` 及 Worker-only 路徑。可作後續真正取消解析的設計參考；當前停止仍為重新載入，未宣稱 AbortSignal 能中止同步 WASM。AGPL 不引入本專案。
 - 後續架構優先序：將 parser 原生 error bitmask 傳到 UI（現在上游 stats 的 unknownEntityCount=0 不代表無錯）→ 在原始字型可用後量測預覽／PDF 各階段 → 評估同版純 glyph provider／獨立 export Worker，避免先建 WebGL 預覽再重做字形。**這一批沒有完成 headless PDF Worker，也沒有驗證成功轉換加速倍數。**
+
+## 2026-11-16 替代字型庫比較
+| 候選 | 查證 | 決定 |
+| --- | --- | --- |
+| MLightCAD cad-data SHX | README 明示字型授權由使用者自行取得，不能把 viewer MIT 當作所有字型授權 | 不整包轉載 |
+| LibreCAD simplex.lff | 官方字型表包含 simplex；LFF 是另一套輪廓格式，現有 renderer 只載入 SHX/TTF/OTF/WOFF | 留待單線字型適配，不未經驗證改副檔名使用 |
+| Noto Sans TC 2.004 | 固定 commit、OFL 1.1、台灣 subset OTF 約 5.7 MB；已用現有 FontManager 解析並產生中英文字形幾何 | 本批內建，明示為替代；不是 SHX 原字形等價品 |
+
+https://github.com/mlightcad/cad-data
+https://github.com/LibreCAD/docs/blob/main/appx/fonts.rst
+https://github.com/notofonts/noto-cjk/tree/523d033d6cb47f4a80c58a35753646f5c3608a78
