@@ -32,7 +32,7 @@ test('invalid geometry and margin rejected',()=>{
 })
 
 test('vector composition supports uniform upscaling and 10mm inset',()=>{
- assert.match(main,/dst\.embedPdfPages\(\[src\.getPage\(0\)\]\)/)
+ assert.match(main,/dst\.embedPages\(\[src\.getPage\(0\)\]\)/)
  assert.match(main,/uniformPdfPlacement\(embedded\.width,embedded\.height,widthPt,heightPt,marginMm\)/)
  assert.match(main,/out\.drawPage\(embedded,placement\)/)
  assert.match(readFileSync(new URL('../src/pdf-layout-geometry.mjs',import.meta.url),'utf8'),/marginMm\*72\/25\.4/)

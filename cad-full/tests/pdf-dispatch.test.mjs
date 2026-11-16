@@ -15,7 +15,7 @@ test('PDF export validates bytes before browser download',()=>{
 })
 test('PDF export does not silently assert fidelity or paper scale',()=>{
  assert.match(source,/紙張選項不代表已實現 1:N 工程比例/)
- assert.match(source,/未驗證字型、XREF、圖元保真及 Safari 下載完成/)
+ assert.match(source,/未驗證字型、XREF、代理物件、圖元保真及 Safari 下載完成/)
 })
 test('PDF renderer is pinned to viewer release',()=>{
  assert.equal(pkg.dependencies['@mlightcad/pdf-renderer'],pkg.dependencies['@mlightcad/cad-simple-viewer'])

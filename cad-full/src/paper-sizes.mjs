@@ -39,6 +39,7 @@ export const PAPER_SIZES = Object.freeze({
  'arch-a':[228.6,304.8],'arch-b':[304.8,457.2],'arch-c':[457.2,609.6],'arch-d':[609.6,914.4],'arch-e':[914.4,1219.2],'arch-e1':[762,1066.8],'arch-e2':[660.4,965.2],'arch-e3':[685.8,990.6],
  'jis-b0':[1030,1456],'jis-b1':[728,1030],'jis-b2':[515,728],'jis-b3':[364,515],'jis-b4':[257,364],'jis-b5':[182,257],'jis-b6':[128,182],'jis-b7':[91,128],'jis-b8':[64,91],'jis-b9':[45,64],'jis-b10':[32,45]
 })
+/** @returns {"extents" | {widthMm:number,heightMm:number}} */
 export function resolvePaper(value,orientation='portrait',customWidth,customHeight){
  if(value==='extents')return 'extents'
  const dimensions=value==='custom'?[Number(customWidth),Number(customHeight)]:PAPER_SIZES[value]

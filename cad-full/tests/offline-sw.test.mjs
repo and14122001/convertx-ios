@@ -46,7 +46,7 @@ test('service worker must not match unrelated caches',()=>fixture(root=>{
 test('service worker only intercepts requests inside its registration scope',()=>fixture(root=>{
  const sw=generate(root)
  assert.match(sw,/event\.request\.url\.startsWith\(self\.registration\.scope\)/)
- assert.doesNotMatch(sw,/new URL\(event\.request\.url\)\.origin/)
+ assert.match(sw,/new URL\(event\.request\.url\)\.origin/)
 }))
 
 test('failed installation cleans incomplete cache',()=>fixture(root=>{const sw=generate(root);assert.match(sw,/catch\(err\)\{await caches\.delete\(CACHE\);throw err\}/)}))
@@ -54,7 +54,7 @@ test('failed installation cleans incomplete cache',()=>fixture(root=>{const sw=g
 test('updates do not forcibly take over active CAD sessions',()=>fixture(root=>{const sw=generate(root);assert.doesNotMatch(sw,/self\.skipWaiting\(/);assert.match(sw,/self\.addEventListener\('activate'/)}))
 
 test('distribution check rejects files missing from offline manifest',()=>fixture(root=>{
- for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'cpdf':'worker')
+ for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'application/pdf createObjectURL':'worker')
  generate(root)
  writeFileSync(join(root,'assets','late-chunk.js'),'late chunk')
  const check=new URL('../scripts/check-dist.mjs',import.meta.url)
@@ -90,7 +90,7 @@ test('offline manifest is deterministic across repeat builds',()=>fixture(root=>
 }))
 
 test('distribution check rejects mismatched JSON manifest cache version',()=>fixture(root=>{
- for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'cpdf':'worker')
+ for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'application/pdf createObjectURL':'worker')
  generate(root)
  const path=join(root,'offline-manifest.json')
  const manifest=JSON.parse(readFileSync(path,'utf8'))
@@ -102,7 +102,7 @@ test('distribution check rejects mismatched JSON manifest cache version',()=>fix
  assert.match(result.stderr,/offline JSON manifest differs from service worker/)
 }))
 test('distribution check accepts matching complete offline assets',()=>fixture(root=>{
- for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'cpdf':'worker')
+ for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'application/pdf createObjectURL':'worker')
  generate(root)
  const check=new URL('../scripts/check-dist.mjs',import.meta.url)
  const result=spawnSync(process.execPath,[check.pathname],{env:{...process.env,CAD_DIST_DIR:root},encoding:'utf8'})
@@ -118,7 +118,7 @@ test('nested files ending with sw.js remain in offline manifest',()=>fixture(roo
 }))
 
 test('distribution check rejects duplicate offline asset entries',()=>fixture(root=>{
- for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'cpdf':'worker')
+ for(const name of ['mtext-renderer-worker.js','libredwg-parser-worker.js','app.js'])writeFileSync(join(root,'assets',name),name==='app.js'?'application/pdf createObjectURL':'worker')
  generate(root)
  const swPath=join(root,'sw.js')
  const sw=readFileSync(swPath,'utf8')

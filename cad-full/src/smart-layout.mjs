@@ -12,6 +12,7 @@ export function recommendLayout(width,height,marginMm=10){
  for(const key of preferred){
   for(const orientation of ['portrait','landscape']){
    const paper=resolvePaper(key,orientation)
+   if(paper==='extents')throw new Error('推薦紙張必須有明確尺寸')
    const innerW=paper.widthMm-2*marginMm,innerH=paper.heightMm-2*marginMm
    if(innerW<=0||innerH<=0)continue
    const fit=Math.min(innerW/width,innerH/height)

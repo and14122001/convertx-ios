@@ -89,7 +89,7 @@ exportButton.addEventListener('click',async()=>{
    const dst=await PDFDocument.create()
    dst.setTitle(lastFileName)
    dst.setSubject('ConvertX vector PDF smart layout; original CAD unit not inferred')
-   const [embedded]=await dst.embedPdfPages([src.getPage(0)])
+   const [embedded]=await dst.embedPages([src.getPage(0)])
    const widthPt=selectedPaper==='extents'?src.getPage(0).getWidth():selectedPaper.widthMm*72/25.4
    const heightPt=selectedPaper==='extents'?src.getPage(0).getHeight():selectedPaper.heightMm*72/25.4
    // Source page includes renderer padding. Scale uniformly, never stretch X/Y independently.

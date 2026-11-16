@@ -4,7 +4,7 @@ import {uniformPdfPlacement,verifyPdfPageGeometry} from '../src/pdf-layout-geome
 test('vector PDF placement fits inside margins without nonuniform distortion',()=>{
  const p=uniformPdfPlacement(900,300,841.89,595.28,10)
  assert.ok(p.factor>0)
- assert.equal(p.width/900,p.height/300)
+ assert.ok(Math.abs(p.width/900-p.height/300)<1e-12)
  assert.ok(p.x>=10*72/25.4-0.001)
  assert.ok(p.y>=10*72/25.4-0.001)
  assert.ok(p.x+p.width<=841.89-10*72/25.4+0.001)

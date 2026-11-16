@@ -420,3 +420,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 對照 CadFlux（MLightCAD + LibreDWG）與 MLightCAD 官方架構，維持本機 DWG WASM→CAD DB→向量 PDF 主線；不將 Canvas 截圖當 PDF，且不在未審核授權前移植其他專案原始碼。詳見 `docs/CAD_OPEN_SOURCE_INTEGRATION.md`。
 - 新增 `cad-full/src/pdf-layout-geometry.mjs`：將紙張 MediaBox 尺寸閘門、留白範圍、等比例置中向量組版移出 `main.ts`；自動排版及輸出前共用純函式，無網路與 DOM 依賴。修正 `smart-layout.test.mjs` 的對應靜態斷言；新增 `pdf-layout-geometry.test.mjs` 測試幾何、留白、尺寸錯誤及比例不變。
 - 本批僅 GitHub 單檔提交，未執行完整 Node/TypeScript/Vite、真實 DWG 或 iPhone 飛航模式；新測試屬已提交未執行，不能宣稱通過。仍須 glyphProvider、GPL 對應原始碼、兩份真實 DWG 與 iPhone 下載驗收。
+
+### 2026-11-16 Work 實際建置批次 A
+- 完整 clone 起點 `c93e024e7c4b9bfb652e2097b2afcbd2b58a5e2f`，Node 24.22.1 / npm 11.9.0。
+- `npm install --ignore-scripts --no-audit --no-fund` 成功；固定全部直接開發依賴，新增含 integrity 的 package-lock.json；`npm ci --ignore-scripts --no-audit --no-fund` 成功重建。
+- 首次實跑：4 個回歸失敗（過期 SW/PDF fixture、警告文字、浮點 strictEqual），TS 缺 JS 模組型別推導及錯誤 `PDFDocument.embedPdfPages` API。修正為真正存在的 `embedPages`，保留 PDF 幾何模組，加入真實 pdf-lib 保存/重載測試，確認 Form XObject 且沒有 Image XObject。
+- 修復 vite-plugin-static-copy 4 的路徑保留行為：`rename.stripBase:true`，Worker/WASM 現在確實在 dist/assets 頂層。
+- `npm run build` 已完整通過：13 個測試檔、TypeScript、Vite 7.3.8、SW manifest、dist 檢查。建置資產 21,812,244 bytes，LibreDWG WASM 10,882,182 bytes。
+- 不代表 DWG 圖元保真、字型、GPL 對應源碼或 iPhone 飛航模式通過。未觸發 Actions，未改既有排程。

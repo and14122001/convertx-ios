@@ -12,7 +12,8 @@
     "noEmit": true,
     "types": [
       "vite/client"
-    ]
+    ],
+    "allowJs": true
   },
   "include": [
     "src/**/*.ts",
