@@ -449,3 +449,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 完整封裝固定 LibreDWG C/JS、converter/data-model、MLightCAD 來源與 ConvertX 修改，包含 jsmn 子模組並逐 byte 比對 WASM；提供同站來源及 SHA256SUMS。尚未從 C 重建 byte-identical WASM，不宣稱正式合規稽核或工程保真完成。
 - 新增 PWA manifest、同源圖示、測試版 commit 標示。修正 root SW 只清自己的 lite cache、不攔截 cad-test/cad-full 路徑；新增兩個實際 VM 行為測試。
 - 本機 npm run build、測試成品 check:dist（CAD_RELEASE=1）已通過。75 測試／16 檔；網站實際網址與發佈結果另以線上驗證為準。
+
+### 2026-11-16 iPhone 匯出持續轉圈修復
+- 使用者截圖：已快取且 DWG 有預覽，但 PDF 停在測量頁面、viewer 同時顯示 Rendering drawing。無原始 DWG，不能僅憑截圖斷言唯一根因。
+- 已核對固定 v1.7.8 `AcTrView2d.waitUntilIdle`：openDocument 可以在 deferred glyph／INSERT jobs 結束前 resolve。匯出現在先檢查已知缺字，再等待 viewer idle（最多 60 秒），之後才呼叫 PDF renderer，避免預覽與匯出爭用字形工作。
+- 自動／手動 PDF 都加入 120 秒非同步 deadline、每秒階段與等待時間、停止並重新載入按鈕。逾時不能真正終止上游工作，因此使該 document session 失效，禁止開新檔或重疊匯出，要求重載；晚到的 PDF 結果不得下載。主執行緒完全被同步計算堵塞時，JS 計時器／按鈕也可能暫時無法執行，未宣稱解決所有大圖效能。
+- 提前列出 viewer/FontManager 已知缺字型與缺字，明確告知 Big5 編碼不能代替 SHX／TTF 字型。保留原有圖元／保真阻擋，不以省略文字的 PDF 冒充成功。
+- 快取檢查另驗證 manifest 包含本頁實際 JavaScript entry，避免更新時舊 cache 被誤稱為新版本完整快取。
+- 新增 5 個執行式回歸測試：idle 順序、false/不 settle 逾時、晚到結果不下載、成功與錯誤傳遞、字型訊息。完整 npm ci + build 通過；使用者原始 DWG 仍待實際回歸。

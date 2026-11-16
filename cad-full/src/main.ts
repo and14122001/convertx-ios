@@ -1,3 +1,4 @@
+import {withDeadline,requireRenderIdle,ExportTimeoutError,missingFontMessage} from './export-lifecycle.mjs'
 import {openVerifiedDocument} from './open-document.mjs'
 import {FontManager} from '@mlightcad/mtext-renderer'
 import {AcTrMTextRenderer} from '@mlightcad/three-renderer'
@@ -19,6 +20,9 @@ const fileInput=document.getElementById('file') as HTMLInputElement
 const exportButton=document.getElementById('export') as HTMLButtonElement
 const workerUrls={mtextRender:'./assets/mtext-renderer-worker.js',dwgParser:'./assets/libredwg-parser-worker.js'}
 let fontLoading=false
+let exportInvalidated=false
+const stopExport=document.getElementById('stop-export') as HTMLButtonElement
+stopExport.addEventListener('click',()=>location.reload())
 let initialized=false
 let loading=false
 let documentReady=false
@@ -54,12 +58,26 @@ async function initialize(){if(initialized)return
   FontManager.instance.enableFontCache=true
   initialized=true
 }
-fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading)return;loading=true;resetFileState();const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:1000});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
+fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading||exportInvalidated)return;loading=true;resetFileState();const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:1000});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
 unsupportedNotice.textContent='保真風險：目前無法完整確認 DWG 中 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT 是否遺失。匯出前請核對原始 DWG；PDF 輸出成功不代表圖元完整。';message('圖面已載入。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。')}finally{loading=false}})
 exportButton.addEventListener('click',async()=>{
- if(!initialized||!documentReady||loading||exporting||fontLoading)return
- exporting=true;exportButton.disabled=true
+ if(!initialized||!documentReady||loading||exporting||fontLoading||exportInvalidated)return
+ exporting=true;exportButton.disabled=true;fileInput.disabled=true;stopExport.hidden=false
+ let phase='檢查文字與渲染狀態'
+ const started=Date.now()
+ const setExportPhase=(text:string)=>{phase=text;message(text)}
+ const progressTimer=window.setInterval(()=>message(phase+'（已等待 '+Math.floor((Date.now()-started)/1000)+' 秒；可按「停止並重新載入」）'),1000)
  try{
+  const view=AcApDocManager.instance.curView
+  const checkFonts=()=>{
+   const warning=missingFontMessage([...Object.keys(FontManager.instance.missedFonts),...Object.keys(view.missedData.fonts)],Object.keys(FontManager.instance.getUnsupportedChar()))
+   if(warning)throw new Error(warning)
+  }
+  checkFonts()
+  setExportPhase('等待預覽文字／圖塊渲染完成，尚未開始 PDF（最長 60 秒）')
+  await requireRenderIdle(view,60000)
+  checkFonts()
+  setExportPhase('正在產生向量 PDF（最長 120 秒）')
   const choice=parseUnitChoice(unitChoice.value)
   const db=AcApDocManager.instance.context.doc.database
   // Fixed v1.7.8 PDF renderer: export model space using native vectors.
@@ -72,8 +90,8 @@ exportButton.addEventListener('click',async()=>{
   let advice='手動紙張設定'
   let autoMeasurement: Uint8Array | undefined
   if(paperChoice.value==='auto'){
-   message('正在依實際可繪圖元測量邊界並推薦紙張…')
-   const measurement=await exportDatabaseToPdf(db,{glyphProvider,title:lastFileName,paper:'extents',marginMm:0,background:'none',fit:'extents',layouts:'current',ltscale:db.ltscale,celtscale:db.celtscale,showLineWeight:!!db.lwdisplay,fontMapping:AcApSettingManager.instance.fontMapping})
+   setExportPhase('正在產生向量 PDF，完成後推薦紙張（最長 120 秒）')
+   const measurement=await withDeadline(async()=>await exportDatabaseToPdf(db,{glyphProvider,title:lastFileName,paper:'extents',marginMm:0,background:'none',fit:'extents',layouts:'current',ltscale:db.ltscale,celtscale:db.celtscale,showLineWeight:!!db.lwdisplay,fontMapping:AcApSettingManager.instance.fontMapping}),120000,'向量 PDF')
    autoMeasurement=measurement
    const measuredDoc=await PDFDocument.load(measurement)
    const page=measuredDoc.getPages()[0]
@@ -105,7 +123,7 @@ exportButton.addEventListener('click',async()=>{
    const out=dst.addPage([widthPt,heightPt])
    out.drawPage(embedded,placement)
    return dst.save({useObjectStreams:true})
-  })() : await exportDatabaseToPdf(db,{
+  })() : await withDeadline(async()=>await exportDatabaseToPdf(db,{
    glyphProvider,
    title:lastFileName,
    ltscale:db.ltscale,
@@ -117,7 +135,7 @@ exportButton.addEventListener('click',async()=>{
    marginMm,
    fit:'extents',
    layouts:'current'
-  })
+  }),120000,'向量 PDF')
   const missingFonts=Object.keys(FontManager.instance.missedFonts)
   const unsupportedChars=Object.keys(FontManager.instance.getUnsupportedChar())
   if(missingFonts.length||unsupportedChars.length)throw new Error('停止下載：缺少字型 '+missingFonts.join(', ')+'；缺字 '+unsupportedChars.join(' ')+'。請載入原圖字型後重新開啟 DWG。')
@@ -140,8 +158,14 @@ exportButton.addEventListener('click',async()=>{
    document.body.appendChild(link);link.click();link.remove()
   }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
   message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+pageAudit+'；'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；已接入文字向量管線；缺字與替代字型仍須核對，未驗證字型、XREF、代理物件、圖元保真及 Safari 下載完成；智慧排版重新嵌入 PDF 後，原 PDF 的可切換圖層可能不保留。')
- }catch(e){message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))}
- finally{exporting=false;exportButton.disabled=!documentReady||loading}
+ }catch(e){
+  if(e instanceof ExportTimeoutError){exportInvalidated=true;documentReady=false}
+  message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))
+ }finally{
+  window.clearInterval(progressTimer);exporting=false
+  fileInput.disabled=exportInvalidated;stopExport.hidden=!exportInvalidated
+  exportButton.disabled=!documentReady||loading||exportInvalidated
+ }
 })
 
 const offlineStatus=document.getElementById('offline-status') as HTMLElement
@@ -159,6 +183,8 @@ async function checkOfflineCoreAssets(){
   if(new Set(assets).size!==assets.length)return false
   if(!assets.includes('./index.html')||!assets.includes('./assets/libredwg-parser-worker.js'))return false
   const scope=new URL('./',location.href)
+  const entry=document.querySelector<HTMLScriptElement>('script[type=module][src]')?.src
+  if(entry&&!assets.some(x=>new URL(x,scope).href===entry))return false
   const cache=await caches.open(cacheName)
   const results=await Promise.all(assets.map(x=>cache.match(new URL(x,scope).href)))
   return results.every(Boolean)
@@ -200,7 +226,7 @@ pdfCheck.addEventListener('change',async()=>{
 
 const fontInput=document.getElementById('font-file') as HTMLInputElement
 fontInput.addEventListener('change',async()=>{
- if(loading||exporting||fontLoading)return
+ if(loading||exporting||fontLoading||exportInvalidated)return
  const files=Array.from(fontInput.files??[])
  if(!files.length)return
  fontLoading=true;resetFileState()
