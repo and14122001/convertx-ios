@@ -20,7 +20,7 @@ export function createFontSettings(onChange:()=>void,notify:(s:string)=>void,isB
   }
  }
  async function refresh(){
-  FontManager.instance.baseUrl=new URL('./',location.href).href
+  FontManager.instance.baseUrl=new URL('./fonts/',location.href).href
   const entries=(await FontManager.instance.getAvailableFonts()).filter(e=>e.source==='cache')
   target.replaceChildren();list.replaceChildren()
   const names=new Set<string>()

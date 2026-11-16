@@ -487,3 +487,8 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 實跑 `npm ci --ignore-scripts --no-audit --no-fund`、`npm run build`（Node tests、tsc --noEmit、Vite、離線 manifest、check:dist）。20 個測試檔通過，新增對應策略 4 項與 TTC 2 項；保留現有預覽回歸測試。建置有大型 JS chunk 警告，尚未解決大圖主執行緒性能。
 - 額外以本機 DejaVu Sans／ExtraLight 建立雙 face TTC，拆分後由 fontTools 重新讀取並逐項比較 cmap、glyph order、hmtx metrics：6,253／2,032 glyphs 均通過。測試字型未提交或部署。
 - 此批尚無 Safari/PWA 原檔到 PDF 的視覺驗收；Linux Chromium 仍受 socket 權限限制。原 DWG LibreDWG code 76、缺字型、未知樣式及參考 PDF 缺乏仍是保真限制。部署 SHA／結果另記，不將 build 成功視為完整功能驗收。
+
+### 2026-11-16 線上字型清單路徑回歸修復
+- `40cf2ba` 的 GitHub Actions／Pages 發佈成功，但雲端瀏覽器實際初次開啟發現字型清單請求 `/cad-test/fonts.json`（回傳 HTML），正確資產位於 `/cad-test/fonts/fonts.json`。
+- 修正 font settings 的 FontManager baseUrl 為同源 `./fonts/`，補上部署目錄回歸測試。這是執行時驗證發現的問題，先前 build 成功不代表此 UI 已驗收。
+- 雲端選檔測試發生工具逾時並失去分頁，未取得 TTC 匯入或 PDF 下載結果，不記為通過。

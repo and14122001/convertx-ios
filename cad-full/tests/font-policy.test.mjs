@@ -24,3 +24,11 @@ test('decoded STYLE edits require substitute mode and an explicit mapping; empty
  applyStyleMappings(model,{danny:'replacement',unknownstyle:'Light'},loaded,'original');assert.equal(model.tables.STYLE.entries[0].font,'danny')
  applyStyleMappings(model,{danny:'replacement',unknownstyle:'Light'},loaded,'substitute');assert.equal(model.tables.STYLE.entries[0].font,'replacement');assert.equal(model.tables.STYLE.entries[1].font,'Light')
 })
+
+test('font settings catalog stays in the deployed same-origin fonts directory',async()=>{
+ const {readFile}=await import('node:fs/promises')
+ const source=await readFile(new URL('../src/font-settings.ts',import.meta.url),'utf8')
+ assert.match(source,/new URL\('\.\/fonts\/',location.href\)/)
+ const catalog=JSON.parse(await readFile(new URL('../public/fonts/fonts.json',import.meta.url),'utf8'))
+ assert.ok(catalog)
+})
