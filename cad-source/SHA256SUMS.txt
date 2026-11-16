@@ -1,0 +1,4 @@
+c513f1f188fe766a61cfa4f4cca4124bbe3e806957e83f875957fbdc00748181  convertx-ios.tar.gz
+d9b86cfd1be0f0acbdd594e4642393b77082fa7eece2f5dc69f3d89c647f55ce  upstream-libredwg-web.tar.gz
+857fea16226c49d1f72cd492edcf0d3c3df3e97043c4ef94913f9e8d5349c30a  upstream-mlightcad.tar.gz
+2fab409905cbe0e44430d33a2af02166a108db010d14e4df307c92d327902d62  upstream-realdwg.tar.gz
