@@ -415,3 +415,8 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 修正 `check-dist.mjs` 改檢查直接 PDF Blob 下載路徑，保留 WASM、Worker、離線資產清單與 GPL 發行閘門；新增 `tests/dist-pdf-gate.test.mjs` 靜態回歸測試。經 GitHub connector 重新讀取已提交檔案並執行 6 項來源斷言皆為 true；**非 npm test、tsc、Vite 實際通過證據**。
 - 2026-11-16 上游文件再查證：MLightCAD 1.8.0 起有 `cad-pdf-core` / `cad-pdf-exporter` 的 Node 無頭 DWG→PDF API，但本專案仍固定 1.7.8，不可跨版本直接套用。https://mlightcad.com/cad-viewer/docs/development/upgrade-guide.html
 - 仍待：實際完整 Linux build、字型 glyphProvider、GPL tarball/對應原始碼、兩份真實 DWG 圖元保真與 iPhone Safari 飛航模式。沒有觸發 GitHub Actions 或修改其他 repo、排程。
+
+### 2026-11-16 重構批次：PDF 幾何驗證／向量組版拆層
+- 對照 CadFlux（MLightCAD + LibreDWG）與 MLightCAD 官方架構，維持本機 DWG WASM→CAD DB→向量 PDF 主線；不將 Canvas 截圖當 PDF，且不在未審核授權前移植其他專案原始碼。詳見 `docs/CAD_OPEN_SOURCE_INTEGRATION.md`。
+- 新增 `cad-full/src/pdf-layout-geometry.mjs`：將紙張 MediaBox 尺寸閘門、留白範圍、等比例置中向量組版移出 `main.ts`；自動排版及輸出前共用純函式，無網路與 DOM 依賴。修正 `smart-layout.test.mjs` 的對應靜態斷言；新增 `pdf-layout-geometry.test.mjs` 測試幾何、留白、尺寸錯誤及比例不變。
+- 本批僅 GitHub 單檔提交，未執行完整 Node/TypeScript/Vite、真實 DWG 或 iPhone 飛航模式；新測試屬已提交未執行，不能宣稱通過。仍須 glyphProvider、GPL 對應原始碼、兩份真實 DWG 與 iPhone 下載驗收。
