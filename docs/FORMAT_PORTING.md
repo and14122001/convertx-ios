@@ -409,3 +409,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 修正自動模式第一輪 PDF export 漏傳 `ltscale`、`celtscale`、`showLineWeight`，避免自動與手動輸出線型/線寬不一致；自動紙張時停用手動方向控制，避免 UI 誤導。新增靜態回歸案例。
 - 尚未執行完整 npm test/tsc/Vite、真實 DWG 或 Safari 飛航模式；不能宣稱保真或最終驗收。未觸發 Actions，未修改其他 repo 或排程。
 - 上游原始碼：https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfConvertor.ts 、https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/AcApPdfGlyphProvider.ts 、https://github.com/mlightcad/cad-viewer/blob/v1.7.8/packages/cad-pdf-plugin/src/index.ts
+
+### 2026-11-16 批次：修復正式建置的過期 PDF 命令閘門
+- 實際重新讀取 `docs/FORMAT_PORTING.md`、`cad-full/src/main.ts`、`scripts/check-dist.mjs`、`tests/smart-layout.test.mjs` 與套件設定。發現 **P0 建置阻塞**：`check-dist.mjs` 仍以 bundle 是否包含舊 `cpdf` 字串當成功條件，但目前 `main.ts` 已改為 `exportDatabaseToPdf` + `Blob(application/pdf)` + `URL.createObjectURL`，因此正常新架構可能被舊檢查誤判為 FAIL。
+- 修正 `check-dist.mjs` 改檢查直接 PDF Blob 下載路徑，保留 WASM、Worker、離線資產清單與 GPL 發行閘門；新增 `tests/dist-pdf-gate.test.mjs` 靜態回歸測試。經 GitHub connector 重新讀取已提交檔案並執行 6 項來源斷言皆為 true；**非 npm test、tsc、Vite 實際通過證據**。
+- 2026-11-16 上游文件再查證：MLightCAD 1.8.0 起有 `cad-pdf-core` / `cad-pdf-exporter` 的 Node 無頭 DWG→PDF API，但本專案仍固定 1.7.8，不可跨版本直接套用。https://mlightcad.com/cad-viewer/docs/development/upgrade-guide.html
+- 仍待：實際完整 Linux build、字型 glyphProvider、GPL tarball/對應原始碼、兩份真實 DWG 圖元保真與 iPhone Safari 飛航模式。沒有觸發 GitHub Actions 或修改其他 repo、排程。
