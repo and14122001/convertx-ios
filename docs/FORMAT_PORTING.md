@@ -442,3 +442,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 實讀固定版 openDocument 型別與實作：失敗可能 resolve(false)，舊程式仍會啟用匯出，可能輸出前一張圖。新增 openVerifiedDocument 明確要求 true；3 個執行式測試涵蓋 false／throw／原始 bytes 傳遞。
 
 - 最終完整建置：73 項 Node 測試／15 個測試檔全部通過，TypeScript 與 Vite 通過，9 個離線資產合計 21,854,187 bytes。`CAD_RELEASE=1 npm run check:dist` 實際失敗於缺少 DWG GPL distribution document，正式部署仍被阻擋。手動 CI 安裝改成 npm ci（未觸發 workflow，未變更任何排程）。
+
+### 2026-11-16 使用者授權測試部署
+- 新增 cad-test/ 建置成品發佈流程，沿用現有 main 根目錄 GitHub Pages；不將 cad-full 原始 TypeScript 當成可執行入口。
+- 新的公開 repo Ubuntu 工作流程只處理 CAD 變更／手動執行，非排程；安裝 lockfile、75 個 Node 測試、tsc、Vite、來源封裝、離線及授權文件閘門後才提交成品。未修改既有排程。
+- 完整封裝固定 LibreDWG C/JS、converter/data-model、MLightCAD 來源與 ConvertX 修改，包含 jsmn 子模組並逐 byte 比對 WASM；提供同站來源及 SHA256SUMS。尚未從 C 重建 byte-identical WASM，不宣稱正式合規稽核或工程保真完成。
+- 新增 PWA manifest、同源圖示、測試版 commit 標示。修正 root SW 只清自己的 lite cache、不攔截 cad-test/cad-full 路徑；新增兩個實際 VM 行為測試。
+- 本機 npm run build、測試成品 check:dist（CAD_RELEASE=1）已通過。75 測試／16 檔；網站實際網址與發佈結果另以線上驗證為準。
