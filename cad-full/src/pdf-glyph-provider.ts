@@ -1,3 +1,5 @@
+import {FontManager} from '@mlightcad/mtext-renderer'
+import {mapGlyphStyle,mapInlineFonts} from './font-policy.mjs'
 // SPDX-License-Identifier: MIT
 // Derived from MLightCAD v1.7.8 c6c14f90; see public/legal/MLIGHTCAD-MIT.txt.
 import type {
@@ -29,7 +31,7 @@ import {extractGlyphPrimitives, type SceneNode} from './pdf-glyph-geometry'
  * across identical texts, so a drawing's unique text content costs ~24 bytes
  * per triangle.
  */
-export function createViewerPdfGlyphProvider(onFailure: (message: string) => void = () => {}): AcPdfGlyphProvider {
+export function createViewerPdfGlyphProvider(onFailure: (message: string) => void = () => {},mapping:Record<string,string>={},mode='original'): AcPdfGlyphProvider {
   const empty: AcPdfGlyphPrimitives = {
     triangles: new Float32Array(0),
     polylines: new Float32Array(0)
@@ -42,6 +44,10 @@ export function createViewerPdfGlyphProvider(onFailure: (message: string) => voi
       colorSettings?: AcPdfGlyphColorSettings
     ) {
       try {
+        style=mapGlyphStyle(style,mapping,(name:string)=>FontManager.instance.isFontLoaded(name),mode)
+        const mappedData={...data} as AcGiMTextData & {contents?:string}
+        for(const key of ['text','contents'] as const)if(typeof mappedData[key]==='string')mappedData[key]=mapInlineFonts(mappedData[key]!,mapping,(name:string)=>FontManager.instance.isFontLoaded(name),mode)
+        data=mappedData
         const renderer = AcTrMTextRenderer.getInstance()
         // Vector PDF extracts Mesh/Line BufferGeometry. Scene-level placement
         // mode leaves empty groups — force per-entity merge for this draw only.

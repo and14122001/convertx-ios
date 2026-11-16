@@ -477,3 +477,13 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 真實原檔 `node scripts/profile-local-dwg.mjs <local DWG> --preflight` 成功越過缺字診斷並建立 DB：parse 7,287 ms、parse+convert 7,947 ms、1,273 blocks、41,207 entities；10 缺字型／14 未解析樣式仍回報。Linux Node 計時，不冒充 Safari 畫面或 PDF 驗收。LibreDWG code 76 未解決。
 - `npm ci --ignore-scripts --no-audit --no-fund`、`npm run build` 通過：85 tests / 18 files、tsc、Vite、offline/dist checks。改寫缺字型回歸測試，要求 missing fonts 不丟棄 parsed model、診斷可供匯出檢查。
 - 上游缺字預覽行為核對：https://github.com/mlightcad/cad-viewer/wiki/FAQ 。本批修復的是預覽被本專案封鎖，並非已驗證所有幾何／文字均正確呈現。
+
+### 2026-11-16 本機字型庫、明確替代與 TTC 集合
+- 基準 main `96b736abdb98233645e8887860169cdd657a9b06`。保留既有幾何 PDF、WASM Worker、漸進預覽；本批沒有替換 CAD 引擎、修改排程或上傳 CAD。
+- 新增本機字型清單、原字型名稱到已匯入字型的明確對應、移除對應，以及「原字型／明確替代」PDF 模式。對應保存於本機 localStorage，字型沿用上游 IndexedDB cache；每次載入頁面預設原字型模式。修改對應／模式後須重新開圖，避免使用舊字形。
+- 名稱正規化合併大小寫、路徑、SHX/TTF 副檔名；不把 simplex1 當成 simplex，不把 Light 當成 Regular。字型名稱清單本身不是字型檔，未內建或散布 Microsoft／不明授權 SHX。
+- 替代僅使用使用者明確選擇且成功載入的本機字型，處理 STYLE、文字 style 與 MTEXT inline font。未解析的樣式可由使用者明確指定；沒有對應或仍有缺字／字形產生錯誤則停止 PDF。替代模式修改記憶體中的模型，不寫回 DWG。PDF 每頁加英文替代警語、Subject 記錄對應、檔名加 `-substituted`；替代可能改變字寬、換行及尺寸文字，不能視為原圖保真。
+- 上游載入介面不直接接受 TTC，新增本機 TTC v1/v2 拆分，保留每個 face 的名稱、glyph tables、度量，重建 SFNT checksums 並移除失效 DSIG。限制輸入 64 MiB、32 faces、展開 256 MiB；異常範圍／重複 tables 拒絕。支援 TTF/OTF faces；不保證上游支援所有變體字型。
+- 實跑 `npm ci --ignore-scripts --no-audit --no-fund`、`npm run build`（Node tests、tsc --noEmit、Vite、離線 manifest、check:dist）。20 個測試檔通過，新增對應策略 4 項與 TTC 2 項；保留現有預覽回歸測試。建置有大型 JS chunk 警告，尚未解決大圖主執行緒性能。
+- 額外以本機 DejaVu Sans／ExtraLight 建立雙 face TTC，拆分後由 fontTools 重新讀取並逐項比較 cmap、glyph order、hmtx metrics：6,253／2,032 glyphs 均通過。測試字型未提交或部署。
+- 此批尚無 Safari/PWA 原檔到 PDF 的視覺驗收；Linux Chromium 仍受 socket 權限限制。原 DWG LibreDWG code 76、缺字型、未知樣式及參考 PDF 缺乏仍是保真限制。部署 SHA／結果另記，不將 build 成功視為完整功能驗收。
