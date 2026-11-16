@@ -16,8 +16,9 @@ export class PreflightDwgConverter extends AcDbLibreDwgConverter {
   const parsed=await super.parse(data,timeout)
   this.parseMs=performance.now()-start
   try{
+   let fontLookupWarning=''
    const result=await preflightParsedDrawing(parsed,
-    async (names:string[])=>{await FontManager.instance.loadFontsByNames([...names,...Object.values(this.mapping)])},
+    async (names:string[])=>{try{await FontManager.instance.loadFontsByNames([...names,...Object.values(this.mapping)])}catch(error){fontLookupWarning='字型目錄查詢失敗：'+String(error)+'；繼續幾何預覽。'}},
     (name:string)=>FontManager.instance.isFontLoaded(name),
     (report:any,missing:any[])=>{this.lastReport={report,missingCount:missing.length,parseMs:this.parseMs};this.fontWarning=missing.length||report.unresolved.length?formatFontPreflight(report,missing):''})
    if(this.lastReport&&this.mode!=='original'){
@@ -25,6 +26,7 @@ export class PreflightDwgConverter extends AcDbLibreDwgConverter {
    }
    if(this.mode==='auto'&&this.lastReport?.substitutions?.length&&!this.lastReport.substitutionError)this.fontWarning='已自動替代 '+this.lastReport.substitutions.length+' 個缺少字型／未知來源樣式；內建 Noto Sans TC 或手動對應。字寬與排版可能不同，PDF 會加註；詳見字型預檢明細。'
    if(result.model)applyStyleMappings(result.model,this.mapping,(name:string)=>FontManager.instance.isFontLoaded(name),this.mode)
+   if(fontLookupWarning){this.fontWarning=fontLookupWarning+'\n'+this.fontWarning;if(this.lastReport)this.lastReport.fontLookupWarning=fontLookupWarning}
    return result
   }catch(error){this.lastIssue=(error instanceof Error?error.message:String(error))+'\n解析耗時 '+(this.parseMs/1000).toFixed(1)+' 秒；預覽與 PDF 尚未開始。';throw error}
  }

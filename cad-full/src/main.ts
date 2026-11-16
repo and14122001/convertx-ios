@@ -1,3 +1,4 @@
+import {loadAutomaticFont,preparePreviewFont} from './automatic-font-loading.mjs'
 import {createFontSettings} from './font-settings'
 import {extractTtcFaces} from './ttc-fonts.mjs'
 import {requireMappedFonts,AUTO_FONT,permitsSubstitution} from './font-policy.mjs'
@@ -56,6 +57,17 @@ updatePaperControls()
 const fontSettings=createFontSettings(()=>{resetFileState();fileInput.value=''},message,()=>loading||exporting||fontLoading||exportInvalidated)
 function resetFileState(){documentReady=false;lastPreflight='';exportButton.disabled=true;layoutAdvice.textContent='尚未分析圖面';unsupportedNotice.textContent='尚未檢查圖面保真風險'}
 function message(s:string){status.textContent=s}
+let autoFontWarning=''
+function prepareAutomaticFont(){return withDeadline(()=>loadAutomaticFont({
+ loadMain:(names:string[])=>FontManager.instance.loadFontsByNames(names),
+ isMainLoaded:(name:string)=>FontManager.instance.isFontLoaded(name),
+ loadRenderer:(names:string[],options:{scope:'all'})=>AcTrMTextRenderer.getInstance().loadFonts(names,options)
+}),30000,'替代字型準備')}
+document.getElementById('font-check')!.addEventListener('click',async()=>{
+ if(loading||exporting||fontLoading||exportInvalidated)return
+ fontLoading=true;message('正在檢查主執行緒與文字 Worker 的內建字型…')
+ try{await initialize();await prepareAutomaticFont();message('內建字型檢查通過：主執行緒已載入 Noto Sans TC，文字 Worker 載入請求已完成。尚未驗證整張圖的 PDF。')}catch(error){message('內建字型檢查失敗：'+String(error))}finally{fontLoading=false}
+})
 async function initialize(){if(initialized)return
   AcDbDatabaseConverterManager.instance.register(AcDbFileType.DWG,converter)
   const ready=await AcApDocManager.checkWebworkerReadiness(workerUrls)
@@ -65,8 +77,8 @@ async function initialize(){if(initialized)return
   FontManager.instance.enableFontCache=true
   initialized=true
 }
-fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading||exportInvalidated)return;loading=true;resetFileState();converter.lastIssue='';converter.fontWarning='';converter.lastReport=undefined;const file=fileInput.files?.[0];if(!file){loading=false;return}fileInput.disabled=true;stopExport.hidden=false;fontDetails.textContent='';const loadStarted=performance.now();const loadTimer=window.setInterval(()=>{loadTiming.textContent='本次開啟已耗時 '+((performance.now()-loadStarted)/1000).toFixed(0)+' 秒；可停止並重新載入'},1000);try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();if(fontSettings.mode==='auto'){message('載入內建離線替代字型 Noto Sans TC…');await AcTrMTextRenderer.getInstance().loadFonts([AUTO_FONT],{scope:'all'});if(!FontManager.instance.isFontLoaded(AUTO_FONT))throw new Error('內建替代字型尚未載入；請連網完成離線資產快取後重試')}message('正在解析 '+file.name+'；圖形漸進顯示，缺字型僅警告');const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';converter.mapping=fontSettings.mapping;converter.mode=fontSettings.mode;await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:250,progressiveRendering:true});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
-unsupportedNotice.textContent='保真風險：目前無法完整確認 DWG 中 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT 是否遺失。匯出前請核對原始 DWG；PDF 輸出成功不代表圖元完整。';message((converter.fontWarning?converter.fontWarning+'\n':'')+'圖形資料已載入，預覽可能仍在背景繪製。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message(converter.lastIssue||('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。'));if(e instanceof ExportTimeoutError){exportInvalidated=true;fileInput.disabled=true;stopExport.hidden=false}}finally{loading=false;window.clearInterval(loadTimer);loadTiming.textContent='本次開啟耗時 '+((performance.now()-loadStarted)/1000).toFixed(1)+' 秒（此裝置實測）';if(converter.lastReport){fontDetails.textContent=JSON.stringify(converter.lastReport,null,2);fontSettings.suggest([...converter.lastReport.report.requirements.map((f:any)=>f.name),...converter.lastReport.report.unresolved])}fileInput.disabled=exportInvalidated;stopExport.hidden=exportInvalidated?false:true}})
+fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading||exportInvalidated)return;loading=true;resetFileState();converter.lastIssue='';converter.fontWarning='';converter.lastReport=undefined;const file=fileInput.files?.[0];if(!file){loading=false;return}fileInput.disabled=true;stopExport.hidden=false;fontDetails.textContent='';const loadStarted=performance.now();const loadTimer=window.setInterval(()=>{loadTiming.textContent='本次開啟已耗時 '+((performance.now()-loadStarted)/1000).toFixed(0)+' 秒；可停止並重新載入'},1000);try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();autoFontWarning='';if(fontSettings.mode==='auto'){message('準備內建替代字型…');const preparation=await preparePreviewFont(prepareAutomaticFont);autoFontWarning=preparation.warning}message('正在解析 '+file.name+'；圖形漸進顯示，缺字型僅警告');const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';converter.mapping=fontSettings.mapping;converter.mode=fontSettings.mode;await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:250,progressiveRendering:true});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
+unsupportedNotice.textContent='保真風險：目前無法完整確認 DWG 中 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT 是否遺失。匯出前請核對原始 DWG；PDF 輸出成功不代表圖元完整。';message((autoFontWarning?autoFontWarning+'\n':'')+(converter.fontWarning?converter.fontWarning+'\n':'')+'圖形資料已載入，預覽可能仍在背景繪製。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message(converter.lastIssue||('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。'));if(e instanceof ExportTimeoutError){exportInvalidated=true;fileInput.disabled=true;stopExport.hidden=false}}finally{loading=false;window.clearInterval(loadTimer);loadTiming.textContent='本次開啟耗時 '+((performance.now()-loadStarted)/1000).toFixed(1)+' 秒（此裝置實測）';if(converter.lastReport){fontDetails.textContent=JSON.stringify(converter.lastReport,null,2);fontSettings.suggest([...converter.lastReport.report.requirements.map((f:any)=>f.name),...converter.lastReport.report.unresolved])}fileInput.disabled=exportInvalidated;stopExport.hidden=exportInvalidated?false:true}})
 exportButton.addEventListener('click',async()=>{
  if(!initialized||!documentReady||loading||exporting||fontLoading||exportInvalidated)return
  exporting=true;exportButton.disabled=true;fileInput.disabled=true;stopExport.hidden=false
@@ -75,6 +87,7 @@ exportButton.addEventListener('click',async()=>{
  const setExportPhase=(text:string)=>{phase=text;message(text)}
  const progressTimer=window.setInterval(()=>message(phase+'（已等待 '+Math.floor((Date.now()-started)/1000)+' 秒；可按「停止並重新載入」）'),1000)
  try{
+  if(fontSettings.mode==='auto'){setExportPhase('檢查主執行緒與文字 Worker 字型');await prepareAutomaticFont()}
   const view=AcApDocManager.instance.curView
   const isLoaded=(name:string)=>FontManager.instance.isFontLoaded(name)
   const checkFonts=()=>{

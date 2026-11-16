@@ -509,3 +509,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - https://github.com/notofonts/noto-cjk/blob/523d033d6cb47f4a80c58a35753646f5c3608a78/LICENSE
 - https://github.com/mlightcad/cad-viewer/wiki/Self-Hosted-Fonts-and-Templates
 - https://help.autodesk.com/cloudhelp/2020/ENU/AutoCAD-DXF/files/GUID-EF68AF7C-13EF-45A1-8175-ED6CE66C8FC9.htm
+
+### 2026-11-16 修正字型 Worker／主執行緒狀態誤判
+- 使用者在 ad33c2e 回報 0.6 秒即開圖失敗。固定套件實際程式確認：AcTrMTextRenderer.loadFonts 交給當前 renderer；Worker mode 的 scope=all 只處理 Worker isolates，並不保證主執行緒 FontManager.isFontLoaded 為 true。前一版用後者驗證前者，是本專案錯誤，不能據此指稱使用者離線快取失敗。
+- 新增獨立字型準備模組，先明確載入主執行緒字型並驗證，再要求 renderer 載入；PDF 匯出前同樣檢查。原版 isFontLoaded 假陰性不再阻擋開圖。
+- 字型準備／目錄查詢失敗改為可見警告，保留幾何預覽。PDF 仍須載入字型及通過既有缺字／字形檢查，不以吞掉錯誤宣稱保真。
+- 新增「檢查內建字型」控制，實際初始化 viewer/Worker 並走與開圖相同的準備路徑；結果明確區分主執行緒已載入及 Worker 請求完成。上游 loadFonts 只回報送出名稱，不能當作每個 Worker 字形完整證據。
+- 新增 4 個行為測試：isolate 獨立狀態、暖載入、準備失敗保留預覽、匯出錯誤傳遞。實跑固定 npm ci、Node tests、TypeScript、Vite 與離線資產檢查；結果與部署 SHA 另記。
+- 上游說明：https://cad-viewer.readthedocs.io/en/v1.7.7-preview.1/classes/_mlightcad_cad-simple-viewer.AcApDocManager.html#ensurepresetfontsforopen ；實作以本機固定 v1.7.8 / mtext-renderer 0.13.7 為準。
