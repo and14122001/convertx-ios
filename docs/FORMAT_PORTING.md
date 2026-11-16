@@ -457,3 +457,15 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 提前列出 viewer/FontManager 已知缺字型與缺字，明確告知 Big5 編碼不能代替 SHX／TTF 字型。保留原有圖元／保真阻擋，不以省略文字的 PDF 冒充成功。
 - 快取檢查另驗證 manifest 包含本頁實際 JavaScript entry，避免更新時舊 cache 被誤稱為新版本完整快取。
 - 新增 5 個執行式回歸測試：idle 順序、false/不 settle 逾時、晚到結果不下載、成功與錯誤傳遞、字型訊息。完整 npm ci + build 通過；使用者原始 DWG 仍待實際回歸。
+
+### 2026-11-16 原始 DWG／錄影回歸：字型預檢提前
+- 基準 main `c1e3cbfd6d6bd20f6e731a2c4da44624ee6aa1db`，獨立 worktree；讀取使用者 79.77 秒錄影與原始 DWG。錄影可見「圖面已載入」與持續字型通知並存；沒有起始選檔時間，不能用錄影長度宣稱完整轉換耗時。
+- 本機 Node WASM：8,871,341 bytes，解析＋資料庫轉換 10,098 ms，1,273 BLOCK 定義、41,207 DB 圖元（含 13,342 INSERT、16,966 LINE、2,765 TEXT、550 MTEXT、185 HATCH）。這是 Linux 計時，不能代替 iPhone 性能。
+- stderr **LibreDWG code 76 = 64 VALUEOUTOFBOUNDS + 8 INVALIDTYPE + 4 UNHANDLEDCLASS**。上游回傳 `unknownEntityCount:0`，所以不能以此統計聲稱完整。尚無參考 PDF，不能驗證保真。
+- 新增 PreflightDwgConverter：沿用同源 WASM Worker，只解析一次，在 parse 回傳／DB 轉換之前檢查文字實際指向的字型；缺字型時不建立數萬圖元的預覽、不啟動 PDF。有效字型時原樣回傳同一 parsed model。未升級或整套替換 MLightCAD。
+- 真實檔案缺字型路徑：11,593 ms parse，11,634 ms 到預檢結果；10 個明確字型需求、14 個未能確定字型來源的樣式。原始掃描含嵌套屬性／BLOCK 定義合計 58,247 筆，與 DB 計數口徑不同，不能拿差值直接當遺失數。完整缺字型模式不保證比純解析更快，改善的是省去後續預覽／PDF 的無效工作。
+- 本機提供 SHX/TTF 仍需使用者有權使用的原字型；未下載或重發不明授權字型，未自動猜測未知樣式／字型／單位。預檢不能覆蓋所有 inline fonts、MLEADER、SHAPE、XREF，原有匯出字形閘門保留。
+- 新增開啟耗時、停止重載、可展開字型診斷。只有 render idle 成功才啟用輸出，逾時 session 失效。降低 DB minimumChunkSize 到 250 改善合作式排程粒度，未聲稱總時間加速。
+- 修正 Service Worker updatefound 註冊時間競態；顯示新版 waiting 與資產安裝失敗，提示關閉舊分頁；未強制 skipWaiting，避免跨版本 Worker/WASM 混用。
+- 執行 `npm ci --ignore-scripts --no-audit --no-fund`；`node scripts/profile-local-dwg.mjs <local.dwg>`、加 `--preflight`；`npm run build`（Node tests + tsc + Vite + offline manifest/check-dist）。新增 5 個行為測試：來源與樣式分離、unused style、BLOCK/ATTRIB 去重、DIMTXSTY handle、缺字型禁止進入下游／成功保留 model identity。
+- 本機 Chromium 真正啟動失敗：`socket() failed: Operation not permitted`。不將 Node 回歸冒充瀏覽器、iPhone、離線下載驗收。原 DWG／錄影／原始診斷內容未加入公開 GitHub。

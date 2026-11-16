@@ -42,3 +42,13 @@
 - 上游 viewer 預設 `baseUrl` 指向 jsDelivr cad-data，會下載字型。ConvertX 已覆寫為同源，部署空字型目錄並讓使用者載入有權使用的原圖字型；不將不明授權的 cad-data 字型重發。
 - 未升級到 1.8+、未替換 PDF 幾何模組。未知 SHX 編碼維持未指定，不自動推定 Big5/GBK。
 - 本批文字 API／型別／bundle 建置通過，字形幾何單元測試通過；真實中文字形與 Safari 字型快取仍未驗收。
+
+## 2026-11-16 原始工程圖實測後的架構修正
+
+- 使用者提供的 DWG 僅在工作環境本機讀取；未加入 Git、未送第三方轉換服務。SHA256 `7342ddf877e3cc255e70c48c80d00ecb0e05607e513f1edec545ac72f5a30609`。
+- 舊路徑 `parse → BLOCK/DB → preview glyph jobs → export check` 太晚發現不可匯出的字型。新路徑 `Worker parse → STYLE/文字參照預檢 → DB/preview → idle → PDF` 在缺少已知字型時停止於 DB 轉換之前，保留既有幾何與向量 PDF 模組，無重複解析。
+- 預檢從原始 STYLE 的 font/bigFont/extendedFont 取來源，對使用於 TEXT/MTEXT/ATTRIB/ATTDEF/SHAPE 與部分 DIMENSION/LEADER 的樣式建立需求；大小寫、路徑、字型副檔名去重。**不把樣式名稱當字型，不自動替換**。空來源保持 unresolved。掃描包括所有 BLOCK 定義，並非僅畫面可見圖元；inline MTEXT 字型、MLEADER、外部 SHAPE 與所有動態參照尚未完整涵蓋，保留匯出端缺字閘門。
+- 已實讀 MLightCAD v1.7.8 `AcApTextStyleFontPreload.ts`、`AcApOpenDatabaseOptions.ts` 與安裝版 converter protected parse API。沿用官方 FontManager 本機快取查詢，採自己的純函式依賴收集／預檢，不複製其他專案授權程式。
+- CadFlux 固定 `4efa6712040d0ff2486e3c61f1766ce627fc67c8` 的 `packages/renderer-pdf/src/node.ts` 是 `DrawingDocument → jsPDF`，帶 Node 檔案輸出；未驗證 SHX/中文保真，不能只為速度整套替換。
+- flyfish 固定 `0ce90d08bbf96aa780676ffeb81e0da12c575097` 的 `DwgLoader.ts` 提供 `preload` / `terminateWorker` 及 Worker-only 路徑。可作後續真正取消解析的設計參考；當前停止仍為重新載入，未宣稱 AbortSignal 能中止同步 WASM。AGPL 不引入本專案。
+- 後續架構優先序：將 parser 原生 error bitmask 傳到 UI（現在上游 stats 的 unknownEntityCount=0 不代表無錯）→ 在原始字型可用後量測預覽／PDF 各階段 → 評估同版純 glyph provider／獨立 export Worker，避免先建 WebGL 預覽再重做字形。**這一批沒有完成 headless PDF Worker，也沒有驗證成功轉換加速倍數。**

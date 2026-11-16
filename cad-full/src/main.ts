@@ -12,13 +12,16 @@ import {inspectDwgHeader,parseUnitChoice} from './dwg-preflight.mjs'
 import { validateCadFile } from './file-validation'
 import { AcApDocManager, AcApSettingManager, AcApFontUtil } from '@mlightcad/cad-simple-viewer'
 import { AcDbDatabaseConverterManager, AcDbFileType } from '@mlightcad/data-model'
-import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter'
+import { PreflightDwgConverter } from './preflight-converter'
 import { registerLazyPdfPlugin } from '@mlightcad/cad-pdf-plugin/register'
 import { exportDatabaseToPdf } from '@mlightcad/pdf-renderer'
 const status=document.getElementById('status') as HTMLElement
+const loadTiming=document.getElementById('load-timing') as HTMLElement
+const fontDetails=document.getElementById('font-details') as HTMLElement
 const fileInput=document.getElementById('file') as HTMLInputElement
 const exportButton=document.getElementById('export') as HTMLButtonElement
 const workerUrls={mtextRender:'./assets/mtext-renderer-worker.js',dwgParser:'./assets/libredwg-parser-worker.js'}
+const converter=new PreflightDwgConverter({convertByEntityType:false,useWorker:true,parserWorkerUrl:workerUrls.dwgParser})
 let fontLoading=false
 let exportInvalidated=false
 const stopExport=document.getElementById('stop-export') as HTMLButtonElement
@@ -50,7 +53,7 @@ updatePaperControls()
 function resetFileState(){documentReady=false;lastPreflight='';exportButton.disabled=true;layoutAdvice.textContent='尚未分析圖面';unsupportedNotice.textContent='尚未檢查圖面保真風險'}
 function message(s:string){status.textContent=s}
 async function initialize(){if(initialized)return
-  AcDbDatabaseConverterManager.instance.register(AcDbFileType.DWG,new AcDbLibreDwgConverter({convertByEntityType:false,useWorker:true,parserWorkerUrl:workerUrls.dwgParser}))
+  AcDbDatabaseConverterManager.instance.register(AcDbFileType.DWG,converter)
   const ready=await AcApDocManager.checkWebworkerReadiness(workerUrls)
   if(!ready)throw new Error('DWG/文字 Worker 資產未就緒，請確認 WASM 與 Worker 已部署')
   AcApDocManager.createInstance({baseUrl:new URL('./',location.href).href,container:document.getElementById('canvas')!,busyIndicatorHost:document.getElementById('viewer')!,autoResize:true,webworkerFileUrls:workerUrls})
@@ -58,8 +61,8 @@ async function initialize(){if(initialized)return
   FontManager.instance.enableFontCache=true
   initialized=true
 }
-fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading||exportInvalidated)return;loading=true;resetFileState();const file=fileInput.files?.[0];if(!file){loading=false;return}try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name);const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:1000});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
-unsupportedNotice.textContent='保真風險：目前無法完整確認 DWG 中 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT 是否遺失。匯出前請核對原始 DWG；PDF 輸出成功不代表圖元完整。';message('圖面已載入。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。')}finally{loading=false}})
+fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading||exportInvalidated)return;loading=true;resetFileState();converter.lastIssue='';const file=fileInput.files?.[0];if(!file){loading=false;return}fileInput.disabled=true;stopExport.hidden=false;fontDetails.textContent='';const loadStarted=performance.now();const loadTimer=window.setInterval(()=>{loadTiming.textContent='本次開啟已耗時 '+((performance.now()-loadStarted)/1000).toFixed(0)+' 秒；可停止並重新載入'},1000);try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();message('正在解析 '+file.name+'；解析後先檢查字型，通過才建立預覽');const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';const openedAt=performance.now();await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:250});message('解析與資料庫轉換完成，正在等待預覽；已耗時 '+((performance.now()-openedAt)/1000).toFixed(1)+' 秒');await requireRenderIdle(AcApDocManager.instance.curView,60000);lastFileName=file.name;documentReady=true;exportButton.disabled=false;
+unsupportedNotice.textContent='保真風險：目前無法完整確認 DWG 中 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT 是否遺失。匯出前請核對原始 DWG；PDF 輸出成功不代表圖元完整。';message('圖面已載入。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message(converter.lastIssue||('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。'));if(e instanceof ExportTimeoutError){exportInvalidated=true;fileInput.disabled=true;stopExport.hidden=false}}finally{loading=false;window.clearInterval(loadTimer);loadTiming.textContent='本次開啟耗時 '+((performance.now()-loadStarted)/1000).toFixed(1)+' 秒（此裝置實測）';if(converter.lastReport)fontDetails.textContent=JSON.stringify(converter.lastReport,null,2);fileInput.disabled=exportInvalidated;stopExport.hidden=exportInvalidated?false:true}})
 exportButton.addEventListener('click',async()=>{
  if(!initialized||!documentReady||loading||exporting||fontLoading||exportInvalidated)return
  exporting=true;exportButton.disabled=true;fileInput.disabled=true;stopExport.hidden=false
@@ -200,14 +203,25 @@ if('serviceWorker' in navigator){
           setOfflineStatus(ready?'完整建置資產已快取；仍須實機離線驗收':'尚未完整快取，請保持網路連線')
         }catch(e){setOfflineStatus('無法檢查快取：'+String(e))}
       }
-      await update()
-      reg.addEventListener('updatefound',()=>{
+      const watchInstalling=()=>{
         const worker=reg.installing
         if(!worker)return
-        setOfflineStatus('正在更新離線資產…')
-        worker.addEventListener('statechange',()=>{if(worker.state==='activated')void update()})
-      })
+        setOfflineStatus('正在下載完整離線資產…')
+        worker.addEventListener('statechange',()=>{
+          if(worker.state==='installed'){
+            if(navigator.serviceWorker.controller)setOfflineStatus('新版已下載；請關閉所有此網站分頁後重新開啟，再確認快取')
+            else void update()
+          }
+          if(worker.state==='activated')void update()
+          if(worker.state==='redundant')setOfflineStatus('離線資產安裝失敗；請連網重新開啟')
+        })
+      }
+      // Attach before awaiting cache inspection: installation may finish during it.
+      reg.addEventListener('updatefound',watchInstalling)
+      watchInstalling()
       navigator.serviceWorker.addEventListener('controllerchange',()=>{void update()})
+      await update()
+      if(reg.waiting)setOfflineStatus('新版已下載；請關閉所有此網站分頁後重新開啟，再確認快取')
     }).catch(e=>setOfflineStatus('無法註冊離線服務：'+String(e)))
   })
 }else setOfflineStatus('此瀏覽器不支援 Service Worker')
