@@ -1,4 +1,5 @@
 import {recommendLayout} from './smart-layout.mjs'
+import {uniformPdfPlacement,verifyPdfPageGeometry} from './pdf-layout-geometry.mjs'
 import {PDFDocument} from 'pdf-lib'
 import {resolvePaper} from './paper-sizes.mjs'
 import {inspectPdfBytes} from './pdf-audit.mjs'
@@ -91,12 +92,10 @@ exportButton.addEventListener('click',async()=>{
    const [embedded]=await dst.embedPdfPages([src.getPage(0)])
    const widthPt=selectedPaper==='extents'?src.getPage(0).getWidth():selectedPaper.widthMm*72/25.4
    const heightPt=selectedPaper==='extents'?src.getPage(0).getHeight():selectedPaper.heightMm*72/25.4
-   const inset=marginMm*72/25.4
    // Source page includes renderer padding. Scale uniformly, never stretch X/Y independently.
-   const factor=Math.min((widthPt-2*inset)/embedded.width,(heightPt-2*inset)/embedded.height)
-   if(!Number.isFinite(factor)||factor<=0)throw new Error('留白超過紙張可用尺寸')
+   const placement=uniformPdfPlacement(embedded.width,embedded.height,widthPt,heightPt,marginMm)
    const out=dst.addPage([widthPt,heightPt])
-   out.drawPage(embedded,{x:(widthPt-embedded.width*factor)/2,y:(heightPt-embedded.height*factor)/2,width:embedded.width*factor,height:embedded.height*factor})
+   out.drawPage(embedded,placement)
    return dst.save({useObjectStreams:true})
   })() : await exportDatabaseToPdf(db,{
    title:lastFileName,
@@ -117,7 +116,7 @@ exportButton.addEventListener('click',async()=>{
   const verifiedPage=verifiedDoc.getPage(0)
   const actualWidthMm=verifiedPage.getWidth()*25.4/72
   const actualHeightMm=verifiedPage.getHeight()*25.4/72
-  if(selectedPaper!=='extents'&&(Math.abs(actualWidthMm-selectedPaper.widthMm)>0.1||Math.abs(actualHeightMm-selectedPaper.heightMm)>0.1))throw new Error('PDF MediaBox 紙張尺寸與設定不符，停止下載')
+  verifyPdfPageGeometry(verifiedPage.getWidth(),verifiedPage.getHeight(),selectedPaper,marginMm)
   const pageAudit='PDF MediaBox '+actualWidthMm.toFixed(1)+'×'+actualHeightMm.toFixed(1)+' mm'
   const filename=lastFileName.replace(/\.(dwg|dxf)$/i,'')+'.pdf'
   const blob=new Blob([new Uint8Array(bytes)],{type:'application/pdf'})
