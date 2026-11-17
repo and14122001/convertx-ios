@@ -517,3 +517,9 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 新增「檢查內建字型」控制，實際初始化 viewer/Worker 並走與開圖相同的準備路徑；結果明確區分主執行緒已載入及 Worker 請求完成。上游 loadFonts 只回報送出名稱，不能當作每個 Worker 字形完整證據。
 - 新增 4 個行為測試：isolate 獨立狀態、暖載入、準備失敗保留預覽、匯出錯誤傳遞。實跑固定 npm ci、Node tests、TypeScript、Vite 與離線資產檢查；結果與部署 SHA 另記。
 - 上游說明：https://cad-viewer.readthedocs.io/en/v1.7.7-preview.1/classes/_mlightcad_cad-simple-viewer.AcApDocManager.html#ensurepresetfontsforopen ；實作以本機固定 v1.7.8 / mtext-renderer 0.13.7 為準。
+
+### 2026-11-17 批次：PDF 邊界失效防護與 iOS 離線預快取優化
+- 重新讀取最新 `main.ts`、`pdf-layout-geometry.mjs`、`generate-offline-sw.mjs`、測試、套件版本與本文件；依上游 PDF plugin 官方文件確認仍採本機 CAD 資料庫→原生向量 PDF，不改走 Canvas 截圖。來源：https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md 。
+- PDF 幾何閘門增加非有限／不合法 tolerance 拒絕；向量置中防止極端輸入造成非有限或負數幾何。新增測試覆蓋 NaN、Infinity、上下溢位；原 CAD 單位不推測。
+- Service Worker 預快取由逐檔串行改為最多 3 條並行下載，降低首次完整離線包（含 WASM 與內建字型）準備時間。安裝失敗先等待所有工作完成，再刪除不完整快取，避免並行寫入與清理競態；拒絕 opaque／非成功 HTTP 回應。新增對應來源回歸測試。此項是效能改善設計，**尚無 iPhone 實測秒數**。
+- 本批經 GitHub connector 提交並讀回相關來源；未在此環境完整 checkout 執行 `npm ci`、`npm test`、`tsc`、Vite build，也未執行 Safari 飛航模式 DWG→PDF／參考 PDF 比對。不得把新增測試視為已通過；不觸發 Actions，不改其他 repo 或排程。
