@@ -8,8 +8,8 @@ test('PDF page tolerance is validated rather than allowing NaN to bypass MediaBo
  for(const tolerance of [NaN,Infinity,-0.1,2])assert.throws(()=>verifyPdfPageGeometry(w,h,{widthMm:210,heightMm:297},10,tolerance))
 })
 test('PDF geometry overflow and nonfinite placement are rejected',()=>{
- assert.throws(()=>uniformPdfPlacement(Number.MAX_VALUE,1,Number.MAX_VALUE,Number.MAX_VALUE,0))
- assert.throws(()=>uniformPdfPlacement(1,1,Number.MAX_VALUE,Number.MAX_VALUE,0))
+ assert.throws(()=>uniformPdfPlacement(1e-320,1e-320,1e308,1e308,0))
+ assert.throws(()=>uniformPdfPlacement(Number.MAX_VALUE,Number.MAX_VALUE,1e-320,1e-320,0))
 })
 test('offline precache limits concurrent downloads and waits before deleting a failed cache',()=>{
  assert.match(generator,/Math\.min\(3,ASSETS\.length\)/)
