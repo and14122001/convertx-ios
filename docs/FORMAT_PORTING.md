@@ -523,3 +523,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - PDF 幾何閘門增加非有限／不合法 tolerance 拒絕；向量置中防止極端輸入造成非有限或負數幾何。新增測試覆蓋 NaN、Infinity、上下溢位；原 CAD 單位不推測。
 - Service Worker 預快取由逐檔串行改為最多 3 條並行下載，降低首次完整離線包（含 WASM 與內建字型）準備時間。安裝失敗先等待所有工作完成，再刪除不完整快取，避免並行寫入與清理競態；拒絕 opaque／非成功 HTTP 回應。新增對應來源回歸測試。此項是效能改善設計，**尚無 iPhone 實測秒數**。
 - 本批經 GitHub connector 提交並讀回相關來源；未在此環境完整 checkout 執行 `npm ci`、`npm test`、`tsc`、Vite build，也未執行 Safari 飛航模式 DWG→PDF／參考 PDF 比對。不得把新增測試視為已通過；不觸發 Actions，不改其他 repo 或排程。
+
+### 2026-11-18：DWG→PDF 單頁與紙張失效防護（GitHub 批次）
+- 先讀取最新 `main.ts`、PDF 幾何模組、DWG preflight、PDF audit 與本文件；保留已完成的自動 Noto Sans TC 替代／glyphProvider／LibreDWG WASM，未倒退為 SVG 或 Canvas 截圖。
+- 新增 `src/pdf-export-policy.mjs`：輸出前驗證單頁 PDF、有限正數尺寸、14,400 pt 上限及紙張／留白相容性；測量 PDF、智慧組版來源 PDF、最終 PDF 均採同一驗證閘門。避免非單頁或超大頁面被誤認為可成功下載；不推測 DWG INSUNITS 或 1:N 比例。
+- 新增 `tests/pdf-export-policy.test.mjs` 測試零頁、多頁、NaN／Infinity、超出 PDF 頁面尺寸、留白超過紙張；修正 `smart-layout.test.mjs` 的來源頁面靜態斷言。
+- GitHub connector 已提交程式／測試；本環境實際 `git ls-remote` 仍失敗 `Could not resolve host: github.com`，故無完整 checkout、`npm ci`、Node 全套測試、TypeScript、Vite 或 Safari 實機驗收證據。此為**已提交、待執行**，不是測試通過。不可宣稱 DWG→PDF 完成。
+- 2026-11-18 上游文件核對：MLightCAD 1.8+ 將 PDF 轉檔抽成 `cad-pdf-core`，Node exporter 另設 `cad-pdf-exporter`，目前專案固定 1.7.8；未混裝版本。來源：https://mlightcad.com/cad-viewer/docs/development/built-in-plugins.html
