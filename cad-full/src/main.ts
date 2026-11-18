@@ -9,6 +9,7 @@ import {AcTrMTextRenderer} from '@mlightcad/three-renderer'
 import {createViewerPdfGlyphProvider} from './pdf-glyph-provider'
 import {recommendLayout} from './smart-layout.mjs'
 import {uniformPdfPlacement,verifyPdfPageGeometry} from './pdf-layout-geometry.mjs'
+import {requireSinglePage,requirePaperMargin} from './pdf-export-policy.mjs'
 import {PDFDocument,StandardFonts,rgb} from 'pdf-lib'
 import {resolvePaper} from './paper-sizes.mjs'
 import {inspectPdfBytes} from './pdf-audit.mjs'
@@ -109,6 +110,7 @@ exportButton.addEventListener('click',async()=>{
   const marginMm=Number(marginChoice.value)
   if(!Number.isFinite(marginMm)||marginMm<0||marginMm>100)throw new Error('留白需為 0–100 mm')
   let selectedPaper: 'extents' | {widthMm:number;heightMm:number}=paperChoice.value==='auto' ? 'extents' : resolvePaper(paperChoice.value,paperOrientation.value,customWidth.value,customHeight.value)
+  if(selectedPaper!=='extents')requirePaperMargin(selectedPaper,marginMm)
   let advice='手動紙張設定'
   let autoMeasurement: Uint8Array | undefined
   if(paperChoice.value==='auto'){
@@ -116,8 +118,7 @@ exportButton.addEventListener('click',async()=>{
    const measurement=await withDeadline(async()=>await exportDatabaseToPdf(db,{glyphProvider,title:lastFileName,paper:'extents',marginMm:0,background:'none',fit:'extents',layouts:'current',ltscale:db.ltscale,celtscale:db.celtscale,showLineWeight:!!db.lwdisplay,fontMapping:AcApSettingManager.instance.fontMapping}),120000,'向量 PDF')
    autoMeasurement=measurement
    const measuredDoc=await PDFDocument.load(measurement)
-   const page=measuredDoc.getPages()[0]
-   if(!page)throw new Error('實際圖元沒有可測量的 PDF 頁面')
+   const page=requireSinglePage(measuredDoc,'自動排版測量 PDF')
    const w=page.getWidth(),h=page.getHeight()
    if(w>=14399||h>=14399)throw new Error('圖元範圍超過 PDF 測量上限，請手動指定紙張')
    // The renderer adds its own padding; this is an aspect-ratio estimate,
@@ -133,13 +134,13 @@ exportButton.addEventListener('click',async()=>{
    // pdf-lib embeds the measured PDF page as vector Form XObject, allowing
    // uniform UPSCALING that fixed-paper renderer v1.7.8 otherwise forbids.
    const src=await PDFDocument.load(measuredBytes)
-   if(src.getPageCount()!==1)throw new Error('智慧排版目前僅支援單頁圖面')
+   const sourcePage=requireSinglePage(src,'智慧排版來源 PDF')
    const dst=await PDFDocument.create()
    dst.setTitle(lastFileName)
    dst.setSubject('ConvertX vector PDF smart layout; original CAD unit not inferred')
-   const [embedded]=await dst.embedPages([src.getPage(0)])
-   const widthPt=selectedPaper==='extents'?src.getPage(0).getWidth():selectedPaper.widthMm*72/25.4
-   const heightPt=selectedPaper==='extents'?src.getPage(0).getHeight():selectedPaper.heightMm*72/25.4
+   const [embedded]=await dst.embedPages([sourcePage])
+   const widthPt=selectedPaper==='extents'?sourcePage.getWidth():selectedPaper.widthMm*72/25.4
+   const heightPt=selectedPaper==='extents'?sourcePage.getHeight():selectedPaper.heightMm*72/25.4
    // Source page includes renderer padding. Scale uniformly, never stretch X/Y independently.
    const placement=uniformPdfPlacement(embedded.width,embedded.height,widthPt,heightPt,marginMm)
    const out=dst.addPage([widthPt,heightPt])
@@ -172,9 +173,8 @@ exportButton.addEventListener('click',async()=>{
   }
   const audit=inspectPdfBytes(bytes)
   const verifiedDoc=await PDFDocument.load(bytes)
-  if(verifiedDoc.getPageCount()!==1)throw new Error('目前僅支援單頁 PDF 驗收；輸出頁數異常')
+  const verifiedPage=requireSinglePage(verifiedDoc,'輸出 PDF')
   if(bytes.byteLength===0)throw new Error('PDF 匯出為空檔，停止下載')
-  const verifiedPage=verifiedDoc.getPage(0)
   const actualWidthMm=verifiedPage.getWidth()*25.4/72
   const actualHeightMm=verifiedPage.getHeight()*25.4/72
   verifyPdfPageGeometry(verifiedPage.getWidth(),verifiedPage.getHeight(),selectedPaper,marginMm)
