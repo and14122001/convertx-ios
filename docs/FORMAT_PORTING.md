@@ -530,3 +530,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 新增 `tests/pdf-export-policy.test.mjs` 測試零頁、多頁、NaN／Infinity、超出 PDF 頁面尺寸、留白超過紙張；修正 `smart-layout.test.mjs` 的來源頁面靜態斷言。
 - GitHub connector 已提交程式／測試；本環境實際 `git ls-remote` 仍失敗 `Could not resolve host: github.com`，故無完整 checkout、`npm ci`、Node 全套測試、TypeScript、Vite 或 Safari 實機驗收證據。此為**已提交、待執行**，不是測試通過。不可宣稱 DWG→PDF 完成。
 - 2026-11-18 上游文件核對：MLightCAD 1.8+ 將 PDF 轉檔抽成 `cad-pdf-core`，Node exporter 另設 `cad-pdf-exporter`，目前專案固定 1.7.8；未混裝版本。來源：https://mlightcad.com/cad-viewer/docs/development/built-in-plugins.html
+
+### 2026-11-19：iPhone Safari PDF 下載補救與自動紙張驗證閘門
+- 重新讀取最新 `main.ts`、`pdf-layout-geometry.mjs`、`pdf-export-policy.mjs`、`pdf-glyph-provider.ts`、本文件；確認既有 glyphProvider 與字型預檢已接入，未退回 Canvas 截圖。
+- 修正智慧紙張推薦後未立即經 `requirePaperMargin()` 檢查的缺口：推薦結果及 PDF 嵌入前均核對紙張／留白／14,400pt 上限，失敗則停止下載。
+- 新增 iPhone Safari/PWA PDF 開啟／儲存補救連結：成功產生 PDF 時顯示同源 Blob URL；原本 60 秒自動 revoke 改為下一份 PDF 成功時才釋放前一份 URL。若 Safari 未自動下載，可手動開啟並透過分享儲存到檔案。此為程式碼路徑，**尚未完成 iPhone 真機驗證**。
+- 新增 `tests/safari-pdf-download.test.mjs` 靜態回歸檢查，覆蓋連結、URL 生命週期、推薦紙張閘門。完整 Node/TypeScript/Vite、真實 DWG→PDF、iPhone 飛航模式仍待執行；GitHub DNS 不通屬本環境限制，不應阻擋可獨立提交的開發。
+- 上游核對：https://mlightcad.com/cad-viewer/docs/development/upgrade-guide.html （1.8+ PDF core／exporter；現有 1.7.8 固定版不混裝）。
