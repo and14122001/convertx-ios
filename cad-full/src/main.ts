@@ -25,6 +25,8 @@ const loadTiming=document.getElementById('load-timing') as HTMLElement
 const fontDetails=document.getElementById('font-details') as HTMLElement
 const fileInput=document.getElementById('file') as HTMLInputElement
 const exportButton=document.getElementById('export') as HTMLButtonElement
+const pdfOpenLink=document.getElementById('pdf-open') as HTMLAnchorElement
+let retainedPdfUrl:string|null=null
 const workerUrls={mtextRender:'./assets/mtext-renderer-worker.js',dwgParser:'./assets/libredwg-parser-worker.js'}
 const converter=new PreflightDwgConverter({convertByEntityType:false,useWorker:true,parserWorkerUrl:workerUrls.dwgParser})
 let fontLoading=false
@@ -185,12 +187,19 @@ exportButton.addEventListener('click',async()=>{
   const filename=lastFileName.replace(/\.(dwg|dxf)$/i,'')+(permitsSubstitution(fontSettings.mode)?'-substituted':'')+'.pdf'
   const blob=new Blob([new Uint8Array(bytes)],{type:'application/pdf'})
   const url=URL.createObjectURL(blob)
-  try{
-   const link=document.createElement('a')
-   link.href=url;link.download=filename;link.rel='noopener'
-   document.body.appendChild(link);link.click();link.remove()
-  }finally{window.setTimeout(()=>URL.revokeObjectURL(url),60000)}
-  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'。'+pageAudit+'；'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；已接入文字向量管線；缺字與替代字型仍須核對，未驗證字型、XREF、代理物件、圖元保真及 Safari 下載完成；智慧排版重新嵌入 PDF 後，原 PDF 的可切換圖層可能不保留。')
+  // Keep the same-origin Blob URL alive for manual Safari/PWA open or Share → Save to Files.
+  // Do not revoke it after a fixed 60-second timeout: users may need longer to find the link.
+  const previousPdfUrl=retainedPdfUrl
+  retainedPdfUrl=url
+  pdfOpenLink.href=url
+  pdfOpenLink.download=filename
+  pdfOpenLink.hidden=false
+  if(previousPdfUrl)URL.revokeObjectURL(previousPdfUrl)
+  const link=document.createElement('a')
+  link.href=url;link.download=filename;link.rel='noopener'
+  document.body.appendChild(link)
+  try{link.click()}finally{link.remove()}
+  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'；若 Safari 未自動下載，請使用上方「開啟／儲存剛產生的 PDF」連結。'+pageAudit+'；'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；已接入文字向量管線；缺字與替代字型仍須核對，未驗證字型、XREF、代理物件、圖元保真及 Safari 下載完成；智慧排版重新嵌入 PDF 後，原 PDF 的可切換圖層可能不保留。')
  }catch(e){
   if(e instanceof ExportTimeoutError){exportInvalidated=true;documentReady=false}
   message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))
