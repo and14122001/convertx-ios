@@ -125,6 +125,8 @@ exportButton.addEventListener('click',async()=>{
    // not a direct geometry bounding box or proof of CAD scale.
    const recommended=recommendLayout(w,h,marginMm)
    selectedPaper=recommended.paper
+   // Auto recommendations must pass the same physical-page and margin gate as manual paper.
+   requirePaperMargin(selectedPaper,marginMm)
    advice='自動推薦 '+recommended.key.toUpperCase()+' '+(recommended.orientation==='landscape'?'橫向':'直向')+'；可印區利用率約 '+(recommended.occupancy*100).toFixed(1)+'%（依渲染 PDF 頁面比例估算，含渲染留白，非精確圖元邊界／工程比例）'
    layoutAdvice.textContent=advice
   }
@@ -142,6 +144,7 @@ exportButton.addEventListener('click',async()=>{
    const widthPt=selectedPaper==='extents'?sourcePage.getWidth():selectedPaper.widthMm*72/25.4
    const heightPt=selectedPaper==='extents'?sourcePage.getHeight():selectedPaper.heightMm*72/25.4
    // Source page includes renderer padding. Scale uniformly, never stretch X/Y independently.
+   requirePaperMargin(selectedPaper,marginMm)
    const placement=uniformPdfPlacement(embedded.width,embedded.height,widthPt,heightPt,marginMm)
    const out=dst.addPage([widthPt,heightPt])
    out.drawPage(embedded,placement)
