@@ -1,4 +1,5 @@
 import {loadAutomaticFont,preparePreviewFont} from './automatic-font-loading.mjs'
+import {sha256Hex} from './local-file-hash.mjs'
 import {createFontSettings} from './font-settings'
 import {extractTtcFaces} from './ttc-fonts.mjs'
 import {requireMappedFonts,AUTO_FONT,permitsSubstitution} from './font-policy.mjs'
@@ -39,6 +40,7 @@ let documentReady=false
 let exporting=false
 let lastFileName=''
 let lastPreflight=''
+let lastDwgHash=''
 const unitChoice=document.getElementById('unit-choice') as HTMLSelectElement
 const paperChoice=document.getElementById('paper-choice') as HTMLSelectElement
 const unsupportedNotice=document.getElementById('unsupported-notice') as HTMLElement
@@ -58,7 +60,7 @@ function updatePaperControls(){
 paperChoice.addEventListener('change',updatePaperControls)
 updatePaperControls()
 const fontSettings=createFontSettings(()=>{resetFileState();fileInput.value=''},message,()=>loading||exporting||fontLoading||exportInvalidated)
-function resetFileState(){documentReady=false;lastPreflight='';exportButton.disabled=true;layoutAdvice.textContent='尚未分析圖面';unsupportedNotice.textContent='尚未檢查圖面保真風險'}
+function resetFileState(){documentReady=false;lastPreflight='';lastDwgHash='';pdfOpenLink.hidden=true;exportButton.disabled=true;layoutAdvice.textContent='尚未分析圖面';unsupportedNotice.textContent='尚未檢查圖面保真風險'}
 function message(s:string){status.textContent=s}
 let autoFontWarning=''
 function prepareAutomaticFont(){return withDeadline(()=>loadAutomaticFont({
@@ -80,8 +82,8 @@ async function initialize(){if(initialized)return
   FontManager.instance.enableFontCache=true
   initialized=true
 }
-fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading||exportInvalidated)return;loading=true;resetFileState();converter.lastIssue='';converter.fontWarning='';converter.lastReport=undefined;const file=fileInput.files?.[0];if(!file){loading=false;return}fileInput.disabled=true;stopExport.hidden=false;fontDetails.textContent='';const loadStarted=performance.now();const loadTimer=window.setInterval(()=>{loadTiming.textContent='本次開啟已耗時 '+((performance.now()-loadStarted)/1000).toFixed(0)+' 秒；可停止並重新載入'},1000);try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();autoFontWarning='';if(fontSettings.mode==='auto'){message('準備內建替代字型…');const preparation=await preparePreviewFont(prepareAutomaticFont);autoFontWarning=preparation.warning}message('正在解析 '+file.name+'；圖形漸進顯示，缺字型僅警告');const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';converter.mapping=fontSettings.mapping;converter.mode=fontSettings.mode;await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:250,progressiveRendering:true});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
-unsupportedNotice.textContent='保真風險：目前無法完整確認 DWG 中 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT 是否遺失。匯出前請核對原始 DWG；PDF 輸出成功不代表圖元完整。';message((autoFontWarning?autoFontWarning+'\n':'')+(converter.fontWarning?converter.fontWarning+'\n':'')+'圖形資料已載入，預覽可能仍在背景繪製。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message(converter.lastIssue||('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。'));if(e instanceof ExportTimeoutError){exportInvalidated=true;fileInput.disabled=true;stopExport.hidden=false}}finally{loading=false;window.clearInterval(loadTimer);loadTiming.textContent='本次開啟耗時 '+((performance.now()-loadStarted)/1000).toFixed(1)+' 秒（此裝置實測）';if(converter.lastReport){fontDetails.textContent=JSON.stringify(converter.lastReport,null,2);fontSettings.suggest([...converter.lastReport.report.requirements.map((f:any)=>f.name),...converter.lastReport.report.unresolved])}fileInput.disabled=exportInvalidated;stopExport.hidden=exportInvalidated?false:true}})
+fileInput.addEventListener('change',async()=>{if(loading||exporting||fontLoading||exportInvalidated)return;loading=true;resetFileState();converter.lastIssue='';converter.fontWarning='';converter.lastReport=undefined;const file=fileInput.files?.[0];if(!file){loading=false;return}fileInput.disabled=true;stopExport.hidden=false;fontDetails.textContent='';const loadStarted=performance.now();const loadTimer=window.setInterval(()=>{loadTiming.textContent='本次開啟已耗時 '+((performance.now()-loadStarted)/1000).toFixed(0)+' 秒；可停止並重新載入'},1000);try{if(!/\.(dwg|dxf)$/i.test(file.name))throw new Error('請選擇 DWG/DXF');message('初始化離線 DWG 解析器…');await initialize();autoFontWarning='';if(fontSettings.mode==='auto'){message('準備內建替代字型…');const preparation=await preparePreviewFont(prepareAutomaticFont);autoFontWarning=preparation.warning}message('正在解析 '+file.name+'；圖形漸進顯示，缺字型僅警告');const bytes=await file.arrayBuffer();const kind=validateCadFile(file.name,bytes);lastDwgHash=await sha256Hex(bytes).catch(()=> 'SHA-256 不可用');lastPreflight=kind==='DWG'?(()=>{const info=inspectDwgHeader(bytes);return 'DWG '+info.code+' ('+(info.version??'未知版本')+')。'+info.warnings.join('；')})():'DXF：尚未驗證圖元完整性與單位';converter.mapping=fontSettings.mapping;converter.mode=fontSettings.mode;await openVerifiedDocument(AcApDocManager.instance,file.name,bytes,{minimumChunkSize:250,progressiveRendering:true});lastFileName=file.name;documentReady=true;exportButton.disabled=false;
+unsupportedNotice.textContent='保真風險：目前無法完整確認 DWG 中 XREF、缺字型、代理物件、不可解析圖元、DIMENSION/HATCH/BLOCK/INSERT 是否遺失。匯出前請核對原始 DWG；PDF 輸出成功不代表圖元完整。';message((autoFontWarning?autoFontWarning+'\n':'')+(converter.fontWarning?converter.fontWarning+'\n':'')+'圖形資料已載入，預覽可能仍在背景繪製。DWG/DXF SHA-256：'+lastDwgHash+'。'+lastPreflight+'。請先檢查圖元、字型與外部參照；尚未驗證 PDF 保真。')}catch(e){resetFileState();message(converter.lastIssue||('開啟圖面失敗：'+(e instanceof Error?e.message:String(e))+'。請重新選擇檔案。'));if(e instanceof ExportTimeoutError){exportInvalidated=true;fileInput.disabled=true;stopExport.hidden=false}}finally{loading=false;window.clearInterval(loadTimer);loadTiming.textContent='本次開啟耗時 '+((performance.now()-loadStarted)/1000).toFixed(1)+' 秒（此裝置實測）';if(converter.lastReport){fontDetails.textContent=JSON.stringify(converter.lastReport,null,2);fontSettings.suggest([...converter.lastReport.report.requirements.map((f:any)=>f.name),...converter.lastReport.report.unresolved])}fileInput.disabled=exportInvalidated;stopExport.hidden=exportInvalidated?false:true}})
 exportButton.addEventListener('click',async()=>{
  if(!initialized||!documentReady||loading||exporting||fontLoading||exportInvalidated)return
  exporting=true;exportButton.disabled=true;fileInput.disabled=true;stopExport.hidden=false
@@ -185,6 +187,7 @@ exportButton.addEventListener('click',async()=>{
   verifyPdfPageGeometry(verifiedPage.getWidth(),verifiedPage.getHeight(),selectedPaper,marginMm)
   const pageAudit='PDF MediaBox '+actualWidthMm.toFixed(1)+'×'+actualHeightMm.toFixed(1)+' mm'
   const filename=lastFileName.replace(/\.(dwg|dxf)$/i,'')+(permitsSubstitution(fontSettings.mode)?'-substituted':'')+'.pdf'
+  const pdfHash=await sha256Hex(bytes).catch(()=> 'SHA-256 不可用')
   const blob=new Blob([new Uint8Array(bytes)],{type:'application/pdf'})
   const url=URL.createObjectURL(blob)
   // Keep the same-origin Blob URL alive for manual Safari/PWA open or Share → Save to Files.
@@ -199,7 +202,7 @@ exportButton.addEventListener('click',async()=>{
   link.href=url;link.download=filename;link.rel='noopener'
   document.body.appendChild(link)
   try{link.click()}finally{link.remove()}
-  message('已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'；若 Safari 未自動下載，請使用上方「開啟／儲存剛產生的 PDF」連結。'+pageAudit+'；'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；已接入文字向量管線；缺字與替代字型仍須核對，未驗證字型、XREF、代理物件、圖元保真及 Safari 下載完成；智慧排版重新嵌入 PDF 後，原 PDF 的可切換圖層可能不保留。')
+  message('本機檔案指紋：來源 '+lastDwgHash+'；PDF '+pdfHash+'。SHA-256 僅驗證位元組身分，不代表圖元保真。已產生 PDF '+audit.byteLength+' bytes（'+audit.version+'）並要求瀏覽器下載 '+filename+'；若 Safari 未自動下載，請使用上方「開啟／儲存剛產生的 PDF」連結。'+pageAudit+'；'+advice+'；'+choice.warning+'；紙張選項不代表已實現 1:N 工程比例；已接入文字向量管線；缺字與替代字型仍須核對，未驗證字型、XREF、代理物件、圖元保真及 Safari 下載完成；智慧排版重新嵌入 PDF 後，原 PDF 的可切換圖層可能不保留。')
  }catch(e){
   if(e instanceof ExportTimeoutError){exportInvalidated=true;documentReady=false}
   message('PDF 產生失敗：'+(e instanceof Error?e.message:String(e)))
