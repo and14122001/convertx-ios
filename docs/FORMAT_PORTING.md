@@ -537,3 +537,11 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 新增 iPhone Safari/PWA PDF 開啟／儲存補救連結：成功產生 PDF 時顯示同源 Blob URL；原本 60 秒自動 revoke 改為下一份 PDF 成功時才釋放前一份 URL。若 Safari 未自動下載，可手動開啟並透過分享儲存到檔案。此為程式碼路徑，**尚未完成 iPhone 真機驗證**。
 - 新增 `tests/safari-pdf-download.test.mjs` 靜態回歸檢查，覆蓋連結、URL 生命週期、推薦紙張閘門。完整 Node/TypeScript/Vite、真實 DWG→PDF、iPhone 飛航模式仍待執行；GitHub DNS 不通屬本環境限制，不應阻擋可獨立提交的開發。
 - 上游核對：https://mlightcad.com/cad-viewer/docs/development/upgrade-guide.html （1.8+ PDF core／exporter；現有 1.7.8 固定版不混裝）。
+
+### 2026-11-20：DWG／PDF 本機 SHA-256 比對證據與 Safari 舊連結防護
+- 先讀取最新 `main.ts`、`package.json`、`pdf-layout-geometry.mjs`、`pdf-export-policy.mjs`、測試及本文件；核對 MLightCAD PDF plugin 官方 README（向量 PDF、布局、glyph 相關功能）及 GPL LibreDWG 選用／Worker/WASM 部署說明。現有 1.7.8 管線不變，沒有改用 SVG 或截圖。
+- 新增 `src/local-file-hash.mjs`：使用瀏覽器 WebCrypto 本機計算原始 DWG/DXF 與最終 PDF SHA-256，不上傳檔案；支援 ArrayBuffer 與 TypedArray 切片。摘要僅為位元組識別，**不是 CAD 圖元保真證據**；WebCrypto 不可用時顯示無法取得摘要，不阻斷匯出。
+- `main.ts` 在開啟圖面與成功匯出時呈現來源／PDF 指紋，方便真實 DWG 與參考 App PDF 的人工比對；選取新圖時隱藏舊 PDF 開啟連結，避免誤將上一份 PDF 當成當前圖面輸出；舊 Blob URL 仍於下次成功產出 PDF 後才釋放。
+- 新增 `tests/local-file-hash.test.mjs`：WebCrypto／Node SHA-256 對照、TypedArray offset、無 WebCrypto 失敗及 UI 靜態回歸。
+- 本次 GitHub connector 已提交，容器 Node 22.16.0；`git ls-remote` 實際失敗 `Could not resolve host: github.com`，無法完整 checkout 執行 npm ci、全套 Node、TS、Vite；新增測試**未宣稱通過**。真實 DWG 比對、字型／XREF／代理圖元保真及 iPhone Safari 飛航模式仍待驗收。
+- 參考：https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md ；https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-simple-viewer/README.md
