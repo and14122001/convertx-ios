@@ -545,3 +545,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 新增 `tests/local-file-hash.test.mjs`：WebCrypto／Node SHA-256 對照、TypedArray offset、無 WebCrypto 失敗及 UI 靜態回歸。
 - 本次 GitHub connector 已提交，容器 Node 22.16.0；`git ls-remote` 實際失敗 `Could not resolve host: github.com`，無法完整 checkout 執行 npm ci、全套 Node、TS、Vite；新增測試**未宣稱通過**。真實 DWG 比對、字型／XREF／代理圖元保真及 iPhone Safari 飛航模式仍待驗收。
 - 參考：https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md ；https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-simple-viewer/README.md
+
+### 2026-11-21：DWG 模型／圖塊圖元盤點與保真警告（本批）
+- 先重新讀取最新 `main.ts`、`preflight-converter.ts`、`font-preflight.mjs`、PDF 輸出政策、測試與本文件；確認已接入 glyphProvider，避免重複開發。
+- 新增 `src/cad-entity-audit.mjs`：僅對 LibreDWG WASM 解碼後的 `model.entities`、`BLOCK_RECORD.entries[].entities`、INSERT 巢狀屬性建立去重盤點；回報 INSERT、TEXT/MTEXT、DIMENSION、HATCH、代理圖元、影像／底圖等類型的可見風險。**這是已解碼模型的盤點，不能證明 PDF 有渲染該圖元，也不能證明 XREF／布局／圖層完整。**
+- `preflight-converter.ts` 於解析後保存 `entityAudit`，`main.ts` 在載入成功後將盤點和保真風險顯示於 `unsupported-notice`；未取得盤點時明確顯示未知。新增 `tests/cad-entity-audit.test.mjs` 涵蓋模型、圖塊、巢狀屬性、代理圖元、影像與缺少資料。
+- 上游架構核對：MLightCAD 的 data-model / LibreDWG converter / pdf-renderer 分層；1.8.0 新增 `cad-pdf-core` 與 Node headless exporter，但現有專案固定 1.7.8，不混用跨版套件。來源：https://mlightcad.com/cad-viewer/docs/development/architecture-overview.html 、https://mlightcad.com/cad-viewer/docs/development/built-in-plugins.html
+- 本環境 `git ls-remote` 仍因 github.com DNS 解析失敗；GitHub connector 可讀寫。未取得完整 npm ci／TypeScript／Vite、真實 DWG 比對及 iPhone Safari 飛航模式證據；**本批新增測試尚未在完整儲存庫執行，不能宣稱驗收通過**。未修改其他 repo 或排程。
