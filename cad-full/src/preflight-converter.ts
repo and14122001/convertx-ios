@@ -2,20 +2,23 @@ import {AcDbLibreDwgConverter} from '@mlightcad/libredwg-converter'
 import {applyStyleMappings,requireMappedFonts} from './font-policy.mjs'
 import {FontManager} from '@mlightcad/mtext-renderer'
 import {preflightParsedDrawing,formatFontPreflight} from './font-preflight.mjs'
+import {inspectDecodedCadEntities} from './cad-entity-audit.mjs'
 /** Parse once in the existing WASM Worker; collect diagnostics without blocking geometry preview. */
 export class PreflightDwgConverter extends AcDbLibreDwgConverter {
  lastIssue=''
  fontWarning=''
  lastReport: any
+ entityAudit: ReturnType<typeof inspectDecodedCadEntities>|undefined
  mapping:Record<string,string>={}
  mode='original'
  parseMs=0
  protected async parse(data:ArrayBuffer,timeout?:number){
-  this.lastIssue='';this.fontWarning='';this.lastReport=undefined
+  this.lastIssue='';this.fontWarning='';this.lastReport=undefined;this.entityAudit=undefined
   const start=performance.now()
   const parsed=await super.parse(data,timeout)
   this.parseMs=performance.now()-start
   try{
+   if(parsed.model)this.entityAudit=inspectDecodedCadEntities(parsed.model)
    let fontLookupWarning=''
    const result=await preflightParsedDrawing(parsed,
     async (names:string[])=>{try{await FontManager.instance.loadFontsByNames([...names,...Object.values(this.mapping)])}catch(error){fontLookupWarning='字型目錄查詢失敗：'+String(error)+'；繼續幾何預覽。'}},
