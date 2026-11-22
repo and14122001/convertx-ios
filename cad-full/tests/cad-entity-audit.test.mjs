@@ -30,3 +30,28 @@ test('missing model does not invent drawing contents',()=>{
  assert.equal(audit.modelSpaceCount,0)
  assert.match(formatDecodedCadAudit(audit),/無可列舉圖元/)
 })
+
+test('missing decoded sections are unknown rather than certified empty',()=>{
+ const audit=inspectDecodedCadEntities(null)
+ assert.equal(audit.modelAvailable,false)
+ assert.equal(audit.blockRecordsAvailable,false)
+ assert.match(formatDecodedCadAudit(audit),/模型 未知、圖塊定義 未知/)
+ assert.ok(audit.warnings.some(w=>w.includes('模型空間圖元清單未提供')))
+ assert.ok(audit.warnings.some(w=>w.includes('圖塊定義表未提供')))
+})
+test('explicitly empty model and blocks remain distinguishable from missing data',()=>{
+ const audit=inspectDecodedCadEntities({entities:[],tables:{BLOCK_RECORD:{entries:[]}}})
+ assert.equal(audit.modelAvailable,true)
+ assert.equal(audit.blockRecordsAvailable,true)
+ assert.equal(audit.modelSpaceCount,0)
+ assert.equal(audit.blockRecordCount,0)
+ assert.match(formatDecodedCadAudit(audit),/模型 0、圖塊定義 0/)
+})
+test('uninspectable blocks and critical geometry produce conservative warnings',()=>{
+ const audit=inspectDecodedCadEntities({entities:[{type:'INSERT'},{type:'DIMENSION'},{type:'HATCH'}],tables:{BLOCK_RECORD:{entries:[{name:'MissingGeometry'},{name:'Empty',entities:[]}]}}})
+ assert.equal(audit.uninspectableBlockCount,1)
+ assert.equal(audit.blockRecordCount,2)
+ assert.ok(audit.warnings.some(w=>w.includes('不得視為空圖塊')))
+ assert.ok(audit.warnings.some(w=>w.includes('巢狀展開')))
+ assert.ok(audit.warnings.some(w=>w.includes('逐圖核對 PDF')))
+})
