@@ -41,7 +41,7 @@ export function inspectDecodedCadEntities(model){
   if(typeOfEntity(entity)!=='INSERT')return
   const name=typeof entity.name==='string'?entity.name.trim():''
   if(!name){unnamedInsertCount.value++;return}
-  if(blockRecordsAvailable&&!definedNames.has(name.toUpperCase()))unresolvedInsertNames.add(name)
+  if(blockRecordsAvailable&&!definedNames.has(name.toUpperCase()))unresolvedInsertNames.add(name.toUpperCase())
  }
  // Use the same decoded scopes as the entity inventory; no recursive expansion.
  for(const entity of Array.isArray(model?.entities)?model.entities:[])inspectInsert(entity)
