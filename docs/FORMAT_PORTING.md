@@ -561,3 +561,10 @@ P0a 導入可離線執行的 DWG WASM 解析器（含授權）→ P0b 幾何/圖
 - 授權核對：LibreDWG 官方 GPLv3+；MLightCAD `@mlightcad/libredwg-converter` 公開註明 GPL-3.0，`cad-pdf-plugin` README 標示 MIT；仍需逐個實際發行包及對應原始碼驗證，不能只憑 README 認定整包合規。
 - 網路來源：https://github.com/LibreDWG/libredwg 、https://github.com/mlightcad/realdwg-web/blob/main/README.md 、https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md 。
 - 本環境實際 `git ls-remote https://github.com/and14122001/convertx-ios.git HEAD` 失敗 `Could not resolve host: github.com`；透過 GitHub connector 提交修改，但無完整 checkout／npm ci／TypeScript／Vite／Safari 實測證據。**新增測試已提交、尚未在完整儲存庫執行**；不能宣稱完成 DWG→PDF 驗收。
+
+### 2026-11-23：INSERT 圖塊參照稽核與 XREF 風險辨識
+- 重新讀取最新 `main.ts`、`cad-entity-audit.mjs`、既有測試、`package.json` 與本文件；確認 DWG WASM → CAD DB → 原生向量 PDF 主線及 glyphProvider 已存在，不重複建置。
+- `cad-entity-audit.mjs` 新增解碼後 INSERT 名稱與 BLOCK_RECORD 定義名稱的保守交叉核對。以大寫正規化去重；只在解碼圖塊表存在時列出「未找到定義的參照名稱」，明確標示可能是 XREF、未解碼或外部定義，**不得當作已確認缺漏圖元**。沒有可辨識名稱的 INSERT 另列未知數量；不展開巢狀圖塊，不臆測 CAD 單位。
+- 新增兩項 `cad-entity-audit.test.mjs` 案例：名稱大小寫正規化與圖塊表缺失時不可誤判參照缺漏。透過既有 `main.ts` 保真警告輸出，不新增上傳或網路呼叫。
+- 上游查證（2026-11-23）：GNU LibreDWG 官方授權 GPLv3 或更新版本；官方 README 明確指出部分進階 R2010+ 物件可能略過。MLightCAD PDF plugin 公開文件描述 AcGi 原生向量 PDF、模型空間及 paper-space layout，並非保證所有 DWG 物件保真。來源：https://www.gnu.org/software/libredwg/ 、https://github.com/libredwg/libredwg 、https://github.com/mlightcad/cad-viewer/blob/main/packages/cad-pdf-plugin/README.md 。
+- 本環境 Node v22.16.0；實測 `git ls-remote https://github.com/and14122001/convertx-ios.git HEAD` 仍因 `Could not resolve host: github.com` 失敗；GitHub connector 已提交程式及測試，但**沒有取得完整 checkout、npm test、TypeScript、Vite build 或真機測試通過證據**。兩份真實 DWG 比對、授權發行包核對及 iPhone Safari 飛航模式仍待驗收。未修改其他 repo 或排程。
