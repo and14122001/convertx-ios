@@ -55,3 +55,19 @@ test('uninspectable blocks and critical geometry produce conservative warnings',
  assert.ok(audit.warnings.some(w=>w.includes('巢狀展開')))
  assert.ok(audit.warnings.some(w=>w.includes('逐圖核對 PDF')))
 })
+
+test('INSERT names resolve case-insensitively against decoded block records',()=>{
+ const model={entities:[{type:'INSERT',name:'door'},{type:'INSERT',name:'WINDOW'},{type:'INSERT',name:'Window'}],tables:{BLOCK_RECORD:{entries:[{name:'DOOR',entities:[]}]}}}
+ const audit=inspectDecodedCadEntities(model)
+ assert.equal(audit.insertReferenceAudit.available,true)
+ assert.deepEqual(audit.insertReferenceAudit.unresolvedNames,['WINDOW','Window'])
+ assert.equal(audit.insertReferenceAudit.unnamedCount,0)
+ assert.ok(audit.warnings.some(w=>w.includes('可能為 XREF')))
+})
+test('missing block table cannot be interpreted as broken INSERT references',()=>{
+ const audit=inspectDecodedCadEntities({entities:[{type:'INSERT',name:'A'},{type:'INSERT'}]})
+ assert.equal(audit.insertReferenceAudit.available,false)
+ assert.deepEqual(audit.insertReferenceAudit.unresolvedNames,[])
+ assert.equal(audit.insertReferenceAudit.unnamedCount,1)
+ assert.ok(audit.warnings.some(w=>w.includes('無法核對定義')))
+})
