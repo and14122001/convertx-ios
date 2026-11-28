@@ -11,7 +11,11 @@ test('PDF export uses native renderer and active database, not command dispatch'
 test('PDF export validates bytes before browser download',()=>{
  assert.match(source,/inspectPdfBytes\(bytes\)/)
  assert.match(source,/new Blob\(\[new Uint8Array\(bytes\)\]/)
- assert.match(source,/URL\.revokeObjectURL\(url\)/)
+ assert.match(source,/const previousPdfUrl=retainedPdfUrl/)
+ assert.match(source,/retainedPdfUrl=url/)
+ assert.match(source,/if\(previousPdfUrl\)URL\.revokeObjectURL\(previousPdfUrl\)/)
+ assert.ok(source.indexOf('const verifiedDoc=')<source.indexOf('retainedPdfUrl=url'))
+ assert.doesNotMatch(source,/URL\.revokeObjectURL\(url\)/)
 })
 test('PDF export does not silently assert fidelity or paper scale',()=>{
  assert.match(source,/紙張選項不代表已實現 1:N 工程比例/)
